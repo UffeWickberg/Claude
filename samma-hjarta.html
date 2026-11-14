@@ -1,0 +1,414 @@
+<title>Samma hjärta, ny kanal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Familjen+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Layout: forty thousand years in ten full-bleed scenes. The whole screen turns into each era's channel
+   (rock wall, branding iron, fresco, shield, picture tube, banner, feed) while two things never change:
+   the narrator's italic Didone voice and a heart beating at the same pulse.
+   Every era sets its own complete palette on the stage, so the page is single-look by design. */
+:root {
+  color-scheme: dark;
+  --bg: #e8112d; --fg: #fff0f1; --acc: #1a0508; --dim: rgba(255, 240, 241, .72);
+  --display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --text: "Familjen Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: #e8112d; color: var(--fg); font: 400 17px/1.5 var(--text); overflow-x: hidden; }
+
+.stage { position: relative; min-height: 100%; background: var(--bg); color: var(--fg); transition: color .6s; }
+.stage[data-era="cave"]    { --bg: #170d07; --fg: #f3dfc4; --acc: #d07a2f; --dim: rgba(243, 223, 196, .74); }
+.stage[data-era="brand"]   { --bg: #0b0706; --fg: #ffe9d4; --acc: #ff6a1a; --dim: rgba(255, 233, 212, .74); }
+.stage[data-era="pompeji"] { --bg: #8f2b1d; --fg: #f8ead3; --acc: #f0c35a; --dim: rgba(248, 234, 211, .8); }
+.stage[data-era="herald"]  { --bg: #123c8c; --fg: #fff4d2; --acc: #f2b90f; --dim: rgba(255, 244, 210, .8); }
+.stage[data-era="tv"]      { --bg: #0c0d0d; --fg: #e9ece8; --acc: #aab3ad; --dim: rgba(233, 236, 232, .72); }
+.stage[data-era="web"]     { --bg: #c3c3c3; --fg: #101010; --acc: #0000ee; --dim: rgba(16, 16, 16, .74); }
+.stage[data-era="feed"]    { --bg: #7a2cff; --fg: #ffffff; --acc: #ffffff; --dim: rgba(255, 255, 255, .85); }
+.stage[data-era="next"]    { --bg: #050507; --fg: #f4f4f8; --acc: #b9a6ff; --dim: rgba(244, 244, 248, .72); }
+
+.wall { position: fixed; inset: 0; opacity: 0; transition: opacity .9s; pointer-events: none; }
+.wall.on { opacity: 1; }
+.wall.h3 { background: #e8112d; }
+.wall.cave { background: radial-gradient(60% 55% at 66% 44%, #53311a 0%, #26160c 52%, #0e0805 100%); }
+.wall.cave::after { content: ""; position: absolute; inset: 0; background: radial-gradient(45% 40% at 66% 50%, rgba(255, 150, 60, .2), transparent 70%); animation: fire 2.3s ease-in-out infinite alternate; }
+@keyframes fire { 0% { opacity: .35; } 35% { opacity: .9; } 60% { opacity: .5; } 100% { opacity: 1; } }
+.wall.brand { background: radial-gradient(38% 40% at 68% 48%, #3a1606, #0b0706 72%); }
+.wall.pompeji { background:
+  linear-gradient(to top, #1b1411 0 13%, #e0b24a 13% 14.2%, transparent 14.2%),
+  radial-gradient(30% 22% at 22% 30%, rgba(0, 0, 0, .16), transparent), radial-gradient(26% 30% at 80% 70%, rgba(255, 220, 170, .1), transparent),
+  radial-gradient(18% 14% at 58% 18%, rgba(0, 0, 0, .12), transparent), #8f2b1d; }
+.wall.herald { background:
+  repeating-linear-gradient(45deg, rgba(255, 255, 255, .06) 0 2px, transparent 2px 48px),
+  repeating-linear-gradient(-45deg, rgba(255, 255, 255, .06) 0 2px, transparent 2px 48px), #123c8c; }
+.wall.tv { background: radial-gradient(60% 60% at 60% 50%, #1b1e1d, #050606 80%); }
+.wall.web { background: #c3c3c3; }
+.wall.feed { background: linear-gradient(140deg, #ff2d87, #7a2cff 55%, #1b6bff); }
+.wall.next { background: radial-gradient(40% 40% at 68% 48%, rgba(120, 140, 255, .3), transparent 70%), radial-gradient(30% 30% at 58% 62%, rgba(255, 110, 200, .22), transparent 70%), #050507; }
+
+.frame {
+  position: relative; z-index: 1; min-height: 100%; max-width: 1280px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 14px; padding-block: 18px 18px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.label, .snd, .foot button, .end label, .end button { font: 600 12px/1.3 var(--text); letter-spacing: .14em; text-transform: uppercase; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.snd { padding: 4px 0; border: 0; border-bottom: 1px solid currentColor; background: none; color: inherit; cursor: pointer; }
+
+.main { flex: 1; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 20px 40px; align-items: center; }
+.copy { min-width: 0; display: grid; gap: 14px; align-content: center; }
+.year { margin: 0; font: 900 clamp(60px, 11.5vw, 168px)/.82 var(--display); letter-spacing: -.035em; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.year, .head, .wm { font-optical-sizing: none; font-variation-settings: "opsz" 28; }
+.year small { font: italic 500 .26em/1 var(--display); letter-spacing: 0; margin-left: .25em; }
+.label { margin: 0; color: var(--acc); }
+.stage[data-era="web"] .label { text-decoration: underline; }
+.head { margin: 0; font: italic 800 clamp(32px, 4.9vw, 70px)/1.02 var(--display); letter-spacing: -.015em; text-wrap: balance; max-width: 15em; }
+.body { margin: 0; max-width: 40ch; font-size: clamp(17px, 1.55vw, 21px); line-height: 1.45; color: var(--dim); }
+.copy.in > * { animation: rise .75s cubic-bezier(.2, .7, .2, 1) both; }
+.copy.in > :nth-child(2) { animation-delay: .05s; } .copy.in > :nth-child(3) { animation-delay: .11s; }
+.copy.in > :nth-child(4) { animation-delay: .18s; } .copy.in > :nth-child(5) { animation-delay: .3s; }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+.wm { font: 900 clamp(92px, 15vw, 220px)/.8 var(--display); font-style: normal; letter-spacing: -.045em; display: block; }
+.wm b { font-weight: 900; color: var(--acc); }
+
+.end { display: grid; gap: 16px; }
+.end a.site { justify-self: start; font: italic 800 clamp(24px, 2.8vw, 34px)/1 var(--display); color: inherit; text-underline-offset: 6px; text-decoration-thickness: 2px; }
+.end form { display: grid; gap: 8px; max-width: 460px; padding-top: 14px; border-top: 1px solid var(--dim); }
+.end .field { display: flex; flex-wrap: wrap; gap: 8px; }
+.end input { flex: 1 1 180px; min-width: 0; padding: 12px; border: 1.5px solid var(--fg); border-radius: 0; background: transparent; color: var(--fg); font: 500 17px/1.2 var(--text); }
+.end input::placeholder { color: var(--dim); }
+.end .msg { margin: 0; font-size: 14px; color: var(--dim); min-height: 1.4em; }
+
+.artwrap { min-width: 0; display: grid; place-items: center; }
+#art { display: block; width: 100%; max-width: min(100%, 66vh); aspect-ratio: 1; overflow: visible; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.era { opacity: 0; transition: opacity .7s; pointer-events: none; }
+.era.on { opacity: 1; }
+.h { transform-box: fill-box; transform-origin: center; }
+.spark { animation: spark 2.2s linear infinite; }
+@keyframes spark { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-120px) translateX(18px); opacity: 0; } }
+.crt { animation: crt .13s steps(2) infinite; }
+@keyframes crt { from { opacity: 1; } to { opacity: .9; } }
+.dash { animation: dash 14s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -480; } }
+.fly { position: fixed; z-index: 3; width: 22px; height: 22px; margin: -11px; pointer-events: none; fill: var(--acc); }
+
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 12px 20px; flex-wrap: wrap; }
+.line { display: flex; gap: 6px; align-items: center; }
+.line i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--fg); transition: background .3s, width .3s; }
+.line i.on { background: var(--fg); }
+.line i.now { width: 30px; border-radius: 9px; }
+.nav { display: flex; gap: 10px; }
+.foot button, .end button { padding: 14px 20px; border: 1.5px solid var(--fg); background: transparent; color: var(--fg); cursor: pointer; }
+.foot button.go, .end button { background: var(--fg); color: var(--bg); }
+.foot button:disabled { opacity: .3; cursor: default; }
+button:focus-visible, a:focus-visible, input:focus-visible, #art:focus-visible { outline: 3px solid var(--acc); outline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .main { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 6px; }
+  .artwrap { order: -1; }
+  #art { max-width: min(70vw, 34vh); }
+  .year { font-size: clamp(56px, 19vw, 92px); }
+  .head { font-size: clamp(30px, 8.6vw, 44px); }
+  .wm { font-size: clamp(76px, 25vw, 150px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .copy.in > *, .wall.cave::after, .spark, .crt, .dash { animation: none; }
+  .wall, .era { transition-duration: .01s; }
+}
+</style>
+
+<div class="stage" id="stage" data-era="h3">
+  <div class="wall h3 on"></div><div class="wall cave"></div><div class="wall brand"></div><div class="wall pompeji"></div>
+  <div class="wall herald"></div><div class="wall tv"></div><div class="wall web"></div><div class="wall feed"></div><div class="wall next"></div>
+
+  <div class="frame">
+    <header class="top">
+      <span class="label" style="color: inherit">H3ART</span>
+      <button class="snd" id="snd" type="button" aria-pressed="true">Ljud på</button>
+    </header>
+
+    <main class="main">
+      <section class="copy in" id="copy" aria-live="polite">
+        <p class="year" id="year">40 000 år</p>
+        <p class="label" id="label">En mycket kort historia om varumärken</p>
+        <h1 class="head" id="head">Kanalerna byts ut. Hjärtat gör det aldrig.</h1>
+        <p class="body" id="body">Åtta kanaler, fyrtiotusen år och en enda idé som har fungerat i varenda en.</p>
+        <div class="end" id="end" hidden>
+          <a class="site" href="https://h3art.se" target="_blank" rel="noopener">h3art.se</a>
+          <form id="send">
+            <label for="name">Skicka historien till någon</label>
+            <div class="field">
+              <input id="name" type="text" maxlength="30" autocomplete="off" placeholder="Mottagarens namn">
+              <button type="submit">Skriv in namnet</button>
+            </div>
+            <p class="msg" id="msg">Namnet hamnar i sidans adress. Dela sidan, så börjar historien med det.</p>
+          </form>
+        </div>
+      </section>
+
+      <div class="artwrap">
+        <svg id="art" viewBox="0 0 400 400" role="button" tabindex="0" aria-label="Hjärtat. Tryck för ett extra slag.">
+          <defs>
+            <path id="hp" d="M200 352 C56 262 36 152 108 112 C160 84 194 112 200 146 C206 112 240 84 292 112 C364 152 344 262 200 352 Z"/>
+            <filter id="rough" x="-10%" y="-10%" width="120%" height="120%">
+              <feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="3" seed="4" result="t"/>
+              <feDisplacementMap in="SourceGraphic" in2="t" scale="16" result="d"/>
+              <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="9" result="n"/>
+              <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.75" result="m"/>
+              <feComposite in="d" in2="m" operator="in"/>
+            </filter>
+            <filter id="spray" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="11" result="b"/>
+              <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" seed="2" result="n"/>
+              <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 1.9" result="m"/>
+              <feComposite in="b" in2="m" operator="in"/>
+            </filter>
+            <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1.6" fill="#000" opacity=".5"/></pattern>
+            <clipPath id="tube"><rect x="46" y="66" width="308" height="268" rx="46"/></clipPath>
+          </defs>
+
+          <g class="era on" data-e="h3"><g class="h"><use href="#hp" fill="#fff0f1"/><path d="M112 168 C114 146 130 132 150 130" fill="none" stroke="#e8112d" stroke-width="9" stroke-linecap="round"/></g></g>
+
+          <g class="era" data-e="cave">
+            <g transform="translate(40 262) rotate(-14)">
+              <ellipse cx="30" cy="42" rx="74" ry="82" fill="#d07a2f" filter="url(#spray)"/>
+              <g fill="#24150c"><rect x="0" y="40" width="58" height="62" rx="20"/><rect x="2" y="-2" width="12" height="60" rx="6"/><rect x="17" y="-14" width="12" height="70" rx="6"/><rect x="32" y="-10" width="12" height="66" rx="6"/><rect x="46" y="4" width="11" height="54" rx="5.5"/><rect x="-22" y="44" width="12" height="46" rx="6" transform="rotate(-42 -16 80)"/></g>
+            </g>
+            <g class="h"><use href="#hp" fill="#b8431c" filter="url(#rough)" transform="translate(30 -14)"/></g>
+            <g fill="#d07a2f" filter="url(#rough)"><circle cx="318" cy="330" r="7"/><circle cx="340" cy="318" r="7"/><circle cx="360" cy="302" r="7"/><circle cx="376" cy="282" r="7"/></g>
+          </g>
+
+          <g class="era" data-e="brand">
+            <path d="M200 352 L318 420" stroke="#3a2a22" stroke-width="13" stroke-linecap="round"/>
+            <g class="h" filter="url(#glow)"><use href="#hp" fill="none" stroke="#ff5a0a" stroke-width="12" stroke-linejoin="round"/><use href="#hp" fill="none" stroke="#ffe2b0" stroke-width="3.5" stroke-linejoin="round"/></g>
+            <g fill="#ffb060"><circle class="spark" cx="120" cy="150" r="2.5"/><circle class="spark" cx="286" cy="130" r="2" style="animation-delay: -.7s"/><circle class="spark" cx="200" cy="170" r="2.5" style="animation-delay: -1.3s"/><circle class="spark" cx="246" cy="250" r="2" style="animation-delay: -1.8s"/><circle class="spark" cx="150" cy="240" r="2" style="animation-delay: -.4s"/></g>
+          </g>
+
+          <g class="era" data-e="pompeji">
+            <rect x="34" y="34" width="332" height="332" fill="#1b1411"/><rect x="46" y="46" width="308" height="308" fill="#7c2317" stroke="#e0b24a" stroke-width="3"/>
+            <g class="h"><use href="#hp" fill="#f6e6c8" filter="url(#rough)" transform="translate(40 46) scale(.8)"/></g>
+            <path d="M46 120 L92 138 L118 128 L160 160 M354 250 L310 262 L290 300 L250 312 M210 46 L222 80 L204 104" fill="none" stroke="#1b1411" stroke-width="1.6" opacity=".55"/>
+          </g>
+
+          <g class="era" data-e="herald">
+            <path d="M74 52 H326 V206 C326 300 254 350 200 376 C146 350 74 300 74 206 Z" fill="#f2b90f" stroke="#1a1206" stroke-width="7" stroke-linejoin="round"/>
+            <path d="M74 52 H326 V96 H74 Z" fill="#c8102e" stroke="#1a1206" stroke-width="7" stroke-linejoin="round"/>
+            <g class="h"><use href="#hp" fill="#c8102e" stroke="#1a1206" stroke-width="9" stroke-linejoin="round" transform="translate(84 112) scale(.58)"/></g>
+          </g>
+
+          <g class="era" data-e="tv">
+            <rect x="24" y="44" width="352" height="312" rx="40" fill="#2a2420" stroke="#5a4c40" stroke-width="5"/>
+            <rect x="46" y="66" width="308" height="268" rx="46" fill="#141816"/>
+            <g clip-path="url(#tube)" class="crt">
+              <g class="h" filter="url(#glow)"><use href="#hp" fill="#dfe6e0" transform="translate(50 56) scale(.75)"/></g>
+              <rect x="46" y="66" width="308" height="268" fill="url(#scan)"/>
+            </g>
+            <circle cx="322" cy="372" r="7" fill="#5a4c40"/><circle cx="296" cy="372" r="7" fill="#5a4c40"/>
+          </g>
+
+          <g class="era" data-e="web">
+            <rect x="40" y="62" width="320" height="292" fill="#c3c3c3"/><path d="M40 354 V62 H360" fill="none" stroke="#fff" stroke-width="4"/><path d="M40 354 H360 V62" fill="none" stroke="#404040" stroke-width="4"/>
+            <rect x="48" y="70" width="304" height="30" fill="#000080"/><text x="58" y="91" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="16">heart.gif</text>
+            <rect x="56" y="110" width="288" height="234" fill="#fff"/>
+            <g class="h" id="px" shape-rendering="crispEdges"></g>
+          </g>
+
+          <g class="era" data-e="feed">
+            <rect x="104" y="18" width="192" height="364" rx="36" fill="rgba(255,255,255,.14)" stroke="#fff" stroke-width="6"/>
+            <rect x="172" y="32" width="56" height="12" rx="6" fill="#fff"/>
+            <circle cx="134" cy="76" r="12" fill="#fff"/><rect x="154" y="70" width="84" height="12" rx="6" fill="#fff" opacity=".8"/>
+            <g class="h"><use href="#hp" fill="#fff" transform="translate(110 94) scale(.45)"/></g>
+            <rect x="124" y="296" width="152" height="10" rx="5" fill="#fff" opacity=".8"/><rect x="124" y="316" width="104" height="10" rx="5" fill="#fff" opacity=".55"/>
+            <rect x="170" y="358" width="60" height="6" rx="3" fill="#fff"/>
+          </g>
+
+          <g class="era" data-e="next">
+            <g class="h"><use class="dash" href="#hp" fill="none" stroke="#f4f4f8" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 14"/></g>
+            <text x="200" y="262" text-anchor="middle" fill="#f4f4f8" font-family="Bodoni Moda, Didot, Georgia, serif" font-style="italic" font-weight="800" font-size="120">?</text>
+          </g>
+        </svg>
+      </div>
+    </main>
+
+    <footer class="foot">
+      <div class="line" id="line" aria-hidden="true"></div>
+      <div class="nav">
+        <button type="button" id="back" disabled>Tillbaka</button>
+        <button type="button" id="next" class="go">Res bakåt i tiden</button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Who is it for? Only letters, digits and hyphens survive in a shared address. */
+const ENC = { 'å': 'a0', 'ä': 'a1', 'ö': 'o0', 'é': 'e0', 'ü': 'u0' };
+const encName = s => s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[åäöéü]/g, c => ENC[c]).replace(/[^a-z\-]|(?<![aoeu])[0-9]/g, m => /^[01]$/.test(m) ? m : '').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+function decName(h) {
+  const m = /^till-([a-z0-9-]+)$/i.exec(h || ''); if (!m) return '';
+  let s = m[1].toLowerCase();
+  for (const [ch, code] of Object.entries(ENC)) s = s.split(code).join(ch);
+  return s.replace(/[0-9]/g, '').split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ').slice(0, 30);
+}
+let who = '';
+function readHash() { let h = ''; try { h = decodeURIComponent(location.hash.slice(1)); } catch (e) {} who = decName(h); }
+
+const scenes = [
+  { era: 'h3', yearText: '40 000 år', label: () => who ? `Till ${who}` : 'En mycket kort historia om varumärken',
+    head: 'Kanalerna byts ut. Hjärtat gör det aldrig.',
+    body: 'Åtta kanaler, fyrtiotusen år och en enda idé som har fungerat i varenda en.' },
+  { era: 'cave', year: -40000, label: 'Kanal: bergvägg',
+    head: 'Någon blåser färg över sin hand.',
+    body: 'Budskapet: jag var här, och jag hör till de här. Ingen logotyp, ingen budget. Ändå känner du något, fyrtiotusen år senare.' },
+  { era: 'brand', year: -2700, label: 'Kanal: glödgat järn',
+    head: 'Någon bränner sitt märke i en oxe.',
+    body: 'Fornnordiskans brandr betyder eld. Därifrån kommer ordet brand. Tanken har inte ändrats: det här är mitt, och det ska synas på håll.' },
+  { era: 'pompeji', year: 79, label: 'Kanal: husvägg',
+    head: 'Någon målar sitt namn stort i Pompeji.',
+    body: 'Fisksåsmakaren Scaurus märker varje kruka och lägger en mosaik av dem hemma i atriet. Avsändare, kvalitet, stolthet. Du känner igen upplägget.' },
+  { era: 'herald', year: 1150, label: 'Kanal: sköld',
+    head: 'Någon målar sin sköld så att den syns genom dimman.',
+    body: 'Heraldiken får regler: få färger, hög kontrast, aldrig färg på färg. Världens första grafiska manual, skriven för folk med svärd.' },
+  { era: 'tv', year: 1941, label: 'Kanal: bildrör',
+    head: 'Någon köper tio sekunder i en ny låda.',
+    body: 'Den första tv-reklamen visar en klocka och säger en enda mening. Lådan är ny. Knepet är uråldrigt: en känsla, en avsändare, klart.' },
+  { era: 'web', year: 1994, label: 'Kanal: banner',
+    head: 'Någon ber dig klicka precis här.',
+    body: 'Den första bannern är 468 pixlar bred, och fyra av tio klickar. Inte för att den är en banner. För att den gör dem nyfikna.' },
+  { era: 'feed', year: 2026, label: 'Kanal: tummen',
+    head: 'Någon scrollar förbi dig på en halv sekund.',
+    body: 'Eller stannar. Det avgörs av samma sak som i grottan: känner jag något, och vet jag vem som talar?' },
+  { era: 'next', yearText: '20??', label: 'Kanal: inte uppfunnen än',
+    head: 'Någon bygger nästa kanal just nu.',
+    body: 'Vi vet inte vad den kommer att heta. Vi vet precis vad som kommer att fungera i den.' },
+  { era: 'h3', yearText: '', wordmark: 1, label: 'Varumärkesbyrå · Örebro',
+    body: 'Känslor är inte motsatsen till affärer. Känslor är affärer, och det har de varit i fyrtiotusen år. Vi hittar dramat i ditt DNA och gör det svårt att gå förbi. I vilken kanal som helst.', end: 1 }
+];
+const LAST = scenes.length - 1;
+
+/* Pixel heart for 1994 */
+(() => {
+  const rows = ['..XXX...XXX..', '.XRRRX.XRRRX.', 'XRRRRRXRRRRRX', 'XRRRRRRRRRRRX', 'XRRRRRRRRRRRX', '.XRRRRRRRRRX.', '..XRRRRRRRX..', '...XRRRRRX...', '....XRRRX....', '.....XRX.....', '......X......'];
+  const g = $('#px'), NS = 'http://www.w3.org/2000/svg', c = 16, ox = 200 - 13 * c / 2, oy = 227 - 11 * c / 2;
+  rows.forEach((r, y) => [...r].forEach((ch, x) => {
+    if (ch === '.') return;
+    const el = document.createElementNS(NS, 'rect');
+    el.setAttribute('x', ox + x * c); el.setAttribute('y', oy + y * c); el.setAttribute('width', c); el.setAttribute('height', c);
+    el.setAttribute('fill', ch === 'X' ? '#000' : '#ff0000'); g.append(el);
+  }));
+})();
+
+const line = $('#line');
+scenes.forEach(() => line.append(document.createElement('i')));
+
+/* Sound: the same soft heartbeat in every era. */
+let ac = null, sound = true;
+function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); }
+function tone(f0, f1, dur, vol, delay = 0) {
+  if (!ac || !sound) return;
+  const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + .02);
+}
+const art = $('#art');
+function beat() {
+  const h = art.querySelector('.era.on .h'); if (!h) return;
+  const s = reduced ? .012 : .07;
+  h.animate([{ transform: 'scale(1)' }, { transform: `scale(${1 + s})`, offset: .12 }, { transform: 'scale(1)', offset: .3 }, { transform: `scale(${1 + s * .6})`, offset: .44 }, { transform: 'scale(1)' }], { duration: 760, easing: 'ease-out' });
+  tone(78, 42, .2, .5); tone(64, 38, .18, .32, .26);
+}
+setInterval(beat, 1050);
+
+function burst(x, y, n) {
+  if (reduced) return;
+  for (let i = 0; i < n; i++) {
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '30 90 340 270'); s.setAttribute('class', 'fly'); s.style.left = x + 'px'; s.style.top = y + 'px';
+    s.innerHTML = '<use href="#hp"/>';
+    document.body.append(s);
+    const a = Math.random() * Math.PI * 2, d = 90 + Math.random() * 190, k = .6 + Math.random() * 1.6;
+    s.animate([{ transform: 'translate(0,0) scale(.3)', opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d - 60}px) scale(${k}) rotate(${(Math.random() - .5) * 80}deg)`, opacity: 0 }],
+      { duration: 900 + Math.random() * 700, easing: 'cubic-bezier(.1,.7,.3,1)' }).onfinish = () => s.remove();
+  }
+}
+const center = () => { const r = art.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+art.addEventListener('click', e => { audio(); beat(); burst(e.clientX || center()[0], e.clientY || center()[1], 12); });
+art.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); audio(); beat(); burst(...center(), 12); } });
+
+/* The year rolls between eras */
+const yearEl = $('#year');
+const NB = ' ';
+function fmtYear(n) {
+  const a = Math.abs(Math.round(n)), t = a >= 10000 ? String(a).replace(/\B(?=(\d{3})+$)/g, NB) : String(a);
+  return n < 0 ? `${t}<small>f.Kr.</small>` : a < 1000 ? `${t}<small>e.Kr.</small>` : t;
+}
+let yearNow = -40000, raf = 0;
+function rollYear(to) {
+  cancelAnimationFrame(raf);
+  const from = yearNow, t0 = performance.now(), dur = reduced ? 1 : 900;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 4);
+    yearNow = from + (to - from) * e; yearEl.innerHTML = fmtYear(yearNow);
+    if (p < 1) raf = requestAnimationFrame(step); else yearNow = to;
+  };
+  raf = requestAnimationFrame(step);
+}
+
+/* Scenes */
+let cur = 0;
+const stage = $('#stage'), copy = $('#copy'), labelEl = $('#label'), headEl = $('#head'), bodyEl = $('#body');
+function go(i, quiet) {
+  const prev = cur;
+  cur = Math.max(0, Math.min(LAST, i));
+  const s = scenes[cur];
+  stage.dataset.era = s.era;
+  document.querySelectorAll('.wall').forEach(w => w.classList.toggle('on', w.classList.contains(s.era)));
+  art.querySelectorAll('.era').forEach(g => g.classList.toggle('on', g.dataset.e === s.era));
+  cancelAnimationFrame(raf);
+  yearEl.hidden = s.yearText === '';
+  if (s.year != null) { if (quiet || scenes[prev].year == null && prev !== 0) { yearNow = s.year; yearEl.innerHTML = fmtYear(s.year); } else rollYear(s.year); }
+  else yearEl.textContent = s.yearText;
+  labelEl.textContent = typeof s.label === 'function' ? s.label() : s.label;
+  if (s.wordmark) headEl.innerHTML = '<span class="wm" aria-label="H3ART">H<b>3</b>ART</span>'; else headEl.textContent = s.head;
+  bodyEl.textContent = s.body;
+  $('#end').hidden = !s.end;
+  [...line.children].forEach((d, k) => { d.classList.toggle('on', k <= cur); d.classList.toggle('now', k === cur); });
+  $('#back').disabled = cur === 0;
+  $('#next').textContent = cur === 0 ? 'Res bakåt i tiden' : cur === LAST ? 'Res igen' : cur === LAST - 1 ? 'Och poängen?' : 'Nästa kanal';
+  if (!quiet) { copy.classList.remove('in'); void copy.offsetWidth; copy.classList.add('in'); }
+  if (cur === LAST && !quiet) setTimeout(() => { if (cur === LAST) burst(...center(), 30); }, 350);
+  if (cur === 0) yearNow = -40000;
+}
+$('#next').addEventListener('click', () => { audio(); go(cur === LAST ? 0 : cur + 1); });
+$('#back').addEventListener('click', () => { audio(); go(cur - 1); });
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input, button, a, #art')) return;
+  if ((e.key === 'ArrowRight' || e.key === ' ') && cur < LAST) { e.preventDefault(); audio(); go(cur + 1); }
+  if (e.key === 'ArrowLeft' && cur > 0) { audio(); go(cur - 1); }
+});
+$('#snd').addEventListener('click', e => { sound = !sound; e.target.textContent = sound ? 'Ljud på' : 'Ljud av'; e.target.setAttribute('aria-pressed', sound); if (sound) audio(); });
+
+/* Passing it on */
+$('#send').addEventListener('submit', e => {
+  e.preventDefault();
+  const code = encName($('#name').value), msg = $('#msg');
+  if (!code) { msg.textContent = 'Skriv ett namn först.'; return; }
+  try { location.hash = 'till-' + code; } catch (err) {}
+  who = decName('till-' + code);
+  msg.textContent = `Klart. Historien börjar nu med ”Till ${who}”. Dela sidan så följer namnet med.`;
+});
+window.addEventListener('hashchange', () => { readHash(); if (cur === 0) go(0, true); });
+
+readHash();
+go(0, true);
+})();
+</script>

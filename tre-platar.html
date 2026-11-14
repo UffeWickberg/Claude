@@ -1,0 +1,354 @@
+<title>Tre plåtar, ett hjärta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one printer's proof sheet. A slug line on top, the story in poster type on the left,
+   a heart printed from three ink plates on the right, a colour bar as page counter at the foot.
+   Single light look by choice: it is a sheet of paper, and the inks overprint with multiply. */
+:root {
+  color-scheme: light;
+  --paper: #eceff0;
+  --ink: #1b2266;      /* plate 1, the key plate */
+  --pink: #ff4fa3;     /* plate 2 */
+  --yellow: #ffe500;   /* plate 3 */
+  --red: #ff4700;      /* pink printed over yellow */
+  --soft: #555b85;
+  --rule: rgba(27, 34, 102, .28);
+  --display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--paper); color: var(--ink); font: 400 17px/1.5 var(--display); font-stretch: 100%; }
+.sheet {
+  min-height: 100%; max-width: 1240px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 14px;
+  padding-block: 16px 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.slug, .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.mono, .slug, .tag, .foot button, .plates button, .end label, .end .msg, .snd {
+  font: 500 12px/1.3 var(--mono); letter-spacing: .09em; text-transform: uppercase;
+}
+.slug { padding-bottom: 10px; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.slug .right { display: flex; gap: 18px; align-items: center; }
+.snd { padding: 4px 0; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--ink); cursor: pointer; }
+
+.main { flex: 1; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 24px 40px; align-items: center; }
+.copy { min-width: 0; display: grid; gap: 16px; align-content: center; }
+.tag { color: var(--soft); margin: 0; }
+.head {
+  margin: 0; font: 900 clamp(38px, 6.6vw, 92px)/.94 var(--display); font-stretch: 70%;
+  text-transform: uppercase; letter-spacing: -.012em; text-wrap: balance; overflow-wrap: anywhere;
+}
+.body { margin: 0; max-width: 36ch; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.45; }
+.copy.in .tag, .copy.in .head, .copy.in .body, .copy.in .extra { animation: rise .7s cubic-bezier(.2, .7, .2, 1) both; }
+.copy.in .head { animation-name: riseHead; animation-delay: .06s; }
+.copy.in .body { animation-delay: .16s; }
+.copy.in .extra { animation-delay: .3s; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes riseHead { from { opacity: 0; transform: translateY(14px); font-stretch: 62%; } }
+
+/* The wordmark scene: the E turns around and stays as a 3. */
+.wm { display: inline-flex; font-size: 1.5em; line-height: .9; letter-spacing: 0; }
+.fl { position: relative; display: inline-block; }
+.fl .e { display: inline-block; animation: turnE 1.5s .5s cubic-bezier(.6, 0, .3, 1) both; }
+.fl .t { position: absolute; inset: 0; text-align: center; color: var(--red); animation: show3 1.5s .5s both; }
+@keyframes turnE { 0%, 20% { transform: scaleX(1); opacity: 1; } 70% { transform: scaleX(-1); opacity: 1; } 100% { transform: scaleX(-1); opacity: 0; } }
+@keyframes show3 { 0%, 70% { opacity: 0; } 100% { opacity: 1; } }
+
+.plates { display: flex; flex-wrap: wrap; gap: 10px; }
+.plates button {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer;
+  border: 1.5px solid var(--ink); background: transparent; color: var(--ink);
+}
+.plates button::before { content: ""; width: 14px; height: 14px; background: var(--sw); border: 1.5px solid var(--ink); }
+.plates button:disabled { cursor: default; background: var(--ink); color: var(--paper); }
+
+.end { display: grid; gap: 18px; }
+.end a.site { justify-self: start; font: 900 clamp(22px, 2.6vw, 30px)/1 var(--display); font-stretch: 80%; color: var(--ink); text-decoration-color: var(--red); text-decoration-thickness: 3px; text-underline-offset: 5px; }
+.end form { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--rule); max-width: 440px; }
+.end .field { display: flex; gap: 8px; flex-wrap: wrap; }
+.end input { flex: 1 1 180px; min-width: 0; padding: 11px 12px; border: 1.5px solid var(--ink); border-radius: 0; background: transparent; color: var(--ink); font: 500 17px/1.2 var(--display); }
+.end input::placeholder { color: var(--soft); }
+.end .msg { margin: 0; color: var(--soft); text-transform: none; letter-spacing: .02em; font-size: 13px; min-height: 1.3em; }
+
+.artwrap { min-width: 0; display: grid; place-items: center; }
+#art { display: block; width: 100%; max-width: min(100%, 62vh); aspect-ratio: 1; overflow: visible; isolation: isolate; }
+#art.play { touch-action: none; cursor: grab; }
+.plate { mix-blend-mode: multiply; transform-origin: 200px 215px; transition: transform .95s cubic-bezier(.3, .9, .25, 1), opacity .6s; }
+.plate.drag { transition: none; }
+.wob { animation: wob 5.5s ease-in-out infinite alternate; }
+#pM .wob { animation-duration: 4.3s; animation-direction: alternate-reverse; }
+#pY .wob { animation-duration: 6.7s; }
+.plate.reg .wob { animation: none; }
+@keyframes wob { from { transform: translate(-3px, 2px); } to { transform: translate(4px, -3px); } }
+#beat { transform-origin: 200px 215px; }
+#ghost { transition: opacity .6s; }
+
+.foot { padding-top: 10px; border-top: 1px solid var(--rule); }
+.bar { display: flex; gap: 5px; }
+.bar i { width: 15px; height: 15px; border: 1.5px solid var(--ink); background: transparent; transition: background .3s; }
+.bar i.on { background: var(--sw); }
+.nav { display: flex; gap: 10px; }
+.foot button { padding: 13px 20px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; }
+.foot button.go, .end button { background: var(--ink); color: var(--paper); }
+.end button { padding: 12px 16px; border: 1.5px solid var(--ink); cursor: pointer; font: 500 12px/1.3 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+.foot button:disabled { opacity: .3; cursor: default; }
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .main { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 10px; }
+  .artwrap { order: -1; }
+  #art { max-width: min(78vw, 40vh); }
+  .head { font-size: clamp(36px, 11.5vw, 56px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wob, .copy.in .tag, .copy.in .head, .copy.in .body, .copy.in .extra { animation: none; }
+  .plate { transition-duration: .01s; }
+}
+</style>
+
+<div class="sheet">
+  <header class="slug">
+    <span>H3ART · Provtryck</span>
+    <span class="right">
+      <button class="snd" id="snd" type="button" aria-pressed="true">Ljud på</button>
+      <span id="ark">Ark 1/9</span>
+    </span>
+  </header>
+
+  <main class="main">
+    <section class="copy in" id="copy" aria-live="polite">
+      <p class="tag" id="tag">En berättelse från H3ART</p>
+      <h1 class="head" id="head">Ett hjärta i tre färger</h1>
+      <p class="body" id="body">En liten berättelse om varför vissa varumärken känns och andra bara syns.</p>
+
+      <div class="plates extra" id="plates" hidden>
+        <button type="button" data-p="K" style="--sw: var(--ink)">Strategi</button>
+        <button type="button" data-p="M" style="--sw: var(--pink)">Design</button>
+        <button type="button" data-p="Y" style="--sw: var(--yellow)">Kreativitet</button>
+      </div>
+
+      <div class="end extra" id="end" hidden>
+        <a class="site" href="https://h3art.se" target="_blank" rel="noopener">h3art.se</a>
+        <form id="send">
+          <label for="name">Skicka berättelsen till någon</label>
+          <div class="field">
+            <input id="name" type="text" maxlength="30" autocomplete="off" placeholder="Mottagarens namn">
+            <button type="submit">Skriv in namnet</button>
+          </div>
+          <p class="msg" id="msg">Namnet hamnar i sidans adress. Dela sidan, så börjar berättelsen med det.</p>
+        </form>
+      </div>
+    </section>
+
+    <div class="artwrap">
+      <svg id="art" viewBox="0 0 400 400" role="img" aria-label="Ett hjärta tryckt i tre färger">
+        <defs>
+          <path id="heart" d="M200 352 C56 262 36 152 108 112 C160 84 194 112 200 146 C206 112 240 84 292 112 C364 152 344 262 200 352 Z"/>
+          <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><circle cx="4.5" cy="4.5" r="2.1" fill="#1b2266"/></pattern>
+          <linearGradient id="fade" x1="0" y1="0" x2="1" y2="1"><stop offset=".45" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+          <mask id="shade"><rect width="400" height="400" fill="url(#fade)"/></mask>
+        </defs>
+        <use id="ghost" href="#heart" fill="none" stroke="#1b2266" stroke-width="2" stroke-dasharray="3 7" opacity="0"/>
+        <g id="beat">
+          <g class="plate" id="pY" data-plate="Y"><g class="wob"><use href="#heart" fill="#ffe500"/></g></g>
+          <g class="plate" id="pM" data-plate="M"><g class="wob"><use href="#heart" fill="#ff4fa3"/></g></g>
+          <g class="plate" id="pK" data-plate="K"><g class="wob">
+            <use href="#heart" fill="url(#dots)" mask="url(#shade)" opacity=".55"/>
+            <use href="#heart" fill="none" stroke="#1b2266" stroke-width="7" stroke-linejoin="round"/>
+            <path d="M112 168 C114 146 130 132 150 130" fill="none" stroke="#1b2266" stroke-width="7" stroke-linecap="round"/>
+          </g></g>
+        </g>
+      </svg>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <div class="bar" id="bar" aria-hidden="true"></div>
+    <div class="nav">
+      <button type="button" id="back" disabled>Tillbaka</button>
+      <button type="button" id="next" class="go">Börja</button>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const INK = { K: '#1b2266', M: '#ff4fa3', Y: '#ffe500' };
+
+/* Who is it for? Only letters, digits and hyphens survive in a shared address. */
+const ENC = { 'å': 'a0', 'ä': 'a1', 'ö': 'o0', 'é': 'e0', 'ü': 'u0' };
+const encName = s => s.trim().toLowerCase().replace(/\s+/g, '-').replace(/[åäöéü]/g, c => ENC[c]).replace(/[^a-z\-]|(?<![aoeu])[0-9]/g, m => /^[01]$/.test(m) ? m : '').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+function decName(h) {
+  const m = /^till-([a-z0-9-]+)$/i.exec(h || ''); if (!m) return '';
+  let s = m[1].toLowerCase();
+  for (const [ch, code] of Object.entries(ENC)) s = s.split(code).join(ch);
+  return s.replace(/[0-9]/g, '').split('-').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ').slice(0, 30);
+}
+let who = '';
+function readHash() { let h = ''; try { h = decodeURIComponent(location.hash.slice(1)); } catch (e) {} who = decName(h); }
+
+/* The story. Plate positions are [x, y, rotation, opacity] in the heart's own units. */
+const Z = [0, 0, 0, 1], OFF = [0, 0, 0, 0];
+const scenes = [
+  { tag: () => who ? `Till ${who}` : 'En berättelse från H3ART', head: 'Ett hjärta i tre färger',
+    body: 'En liten berättelse om varför vissa varumärken känns och andra bara syns.',
+    K: [-12, -8, -4, 1], M: [15, 7, 3, 1], Y: [4, -17, -7, 1] },
+  { tag: 'Före tryck', head: 'Varje varumärke har ett hjärta.',
+    body: 'Det är skälet till att någon bryr sig. Det syns sällan, men det märks direkt när det saknas.',
+    K: OFF, M: OFF, Y: OFF, ghost: 1 },
+  { tag: 'Plåt 1 av 3 · Strategi', head: 'Först kommer strategin.',
+    body: 'Den drar konturen. Vart ska ni, och varför just dit?',
+    K: Z, M: OFF, Y: OFF },
+  { tag: 'Plåt 2 av 3 · Design', head: 'Sedan kommer designen.',
+    body: 'Den ger konturen färg. Så här ska det kännas att möta er.',
+    K: Z, M: [22, 12, 5, 1], Y: OFF },
+  { tag: 'Plåt 3 av 3 · Kreativitet', head: 'Sist kommer kreativiteten.',
+    body: 'Den lägger till värmen. Idén som får folk att vilja följa med.',
+    K: Z, M: [22, 12, 5, 1], Y: [-18, -21, -8, 1] },
+  { tag: 'Misspass', head: 'Oftast görs de var för sig.',
+    body: 'Olika människor, olika rum, olika veckor. Varje del är bra. Tillsammans blir de suddiga. Tryckare kallar det misspass.',
+    K: [-30, 14, -9, 1], M: [34, 22, 8, 1], Y: [-8, -38, -14, 1] },
+  { tag: () => who ? `Din tur, ${who}` : 'Din tur', head: 'Dra dem åt samma håll.',
+    body: 'Tryck på en plåt i taget, eller dra den på plats i bilden.',
+    K: [-30, 14, -9, 1], M: [34, 22, 8, 1], Y: [-8, -38, -14, 1], play: 1 },
+  { tag: 'Passning', head: 'Nu slår det.',
+    body: 'Samma hjärta och samma tre plåtar. Skillnaden är att de drar åt samma håll.',
+    K: Z, M: Z, Y: Z, beat: 1 },
+  { tag: 'Varumärkesbyrå · Örebro', wordmark: 1,
+    body: 'H3ART får strategi, design och kreativitet att dra åt samma håll. Trean i mitten? Tre plåtar. Ett hjärta.',
+    K: Z, M: Z, Y: Z, beat: 1, end: 1 }
+];
+const LAST = scenes.length - 1, PLAY = scenes.findIndex(s => s.play);
+
+/* Sheet furniture */
+const art = $('#art'), plates = { K: $('#pK'), M: $('#pM'), Y: $('#pY') }, beatG = $('#beat');
+const NS = 'http://www.w3.org/2000/svg';
+for (const id of ['Y', 'M', 'K']) {               // every plate carries its own registration marks
+  const w = plates[id].querySelector('.wob');
+  for (const [x, y] of [[26, 26], [374, 26], [26, 374], [374, 374]]) {
+    const mk = (tag, at) => { const el = document.createElementNS(NS, tag); for (const k in at) el.setAttribute(k, at[k]); el.setAttribute('stroke', INK[id]); el.setAttribute('stroke-width', 1.6); el.setAttribute('fill', 'none'); w.append(el); };
+    mk('circle', { cx: x, cy: y, r: 7 });
+    mk('path', { d: `M${x - 13} ${y}H${x + 13}M${x} ${y - 13}V${y + 13}` });
+  }
+}
+const bar = $('#bar');
+scenes.forEach((_, i) => { const b = document.createElement('i'); b.style.setProperty('--sw', ['var(--ink)', 'var(--pink)', 'var(--yellow)', 'var(--red)'][i % 4]); bar.append(b); });
+
+/* Sound: a soft heartbeat, and a thunk when a plate lands. */
+let ac = null, sound = true;
+function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); }
+function tone(f0, f1, dur, vol, delay = 0) {
+  if (!ac || !sound) return;
+  const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + .02);
+}
+let beatTimer = null;
+function beat() {
+  const s = reduced ? .012 : .06;
+  beatG.animate([{ transform: 'scale(1)' }, { transform: `scale(${1 + s})`, offset: .12 }, { transform: 'scale(1)', offset: .3 }, { transform: `scale(${1 + s * .6})`, offset: .44 }, { transform: 'scale(1)' }], { duration: 760, easing: 'ease-out' });
+  tone(78, 42, .2, .5); tone(64, 38, .18, .32, .26);
+}
+function setBeat(on) { clearInterval(beatTimer); beatTimer = null; if (on) { beat(); beatTimer = setInterval(beat, 1050); } }
+
+/* Plates */
+const pos = { K: [...Z], M: [...Z], Y: [...Z] }, reg = { K: true, M: true, Y: true };
+function apply(id) {
+  const [x, y, r, o] = pos[id];
+  plates[id].style.transform = `translate(${x}px, ${y}px) rotate(${r}deg)`;
+  plates[id].style.opacity = o;
+  plates[id].classList.toggle('reg', !x && !y && !r);
+}
+function register(id) {
+  if (reg[id]) return;
+  reg[id] = true; pos[id] = [...Z]; apply(id);
+  tone(320, 110, .09, .35);
+  document.querySelector(`#plates [data-p="${id}"]`).disabled = true;
+  if (reg.K && reg.M && reg.Y) setTimeout(() => { if (cur === PLAY) go(PLAY + 1); }, 950);
+}
+
+/* Scenes */
+let cur = 0;
+const copy = $('#copy'), tagEl = $('#tag'), headEl = $('#head'), bodyEl = $('#body');
+function go(i, quiet) {
+  cur = Math.max(0, Math.min(LAST, i));
+  const s = scenes[cur];
+  tagEl.textContent = typeof s.tag === 'function' ? s.tag() : s.tag;
+  if (s.wordmark) headEl.innerHTML = '<span class="wm" aria-label="H3ART">H<span class="fl"><span class="e">E</span><span class="t">3</span></span>ART</span>';
+  else headEl.textContent = s.head;
+  bodyEl.textContent = s.body;
+  $('#plates').hidden = !s.play; $('#end').hidden = !s.end;
+  for (const id of ['K', 'M', 'Y']) { pos[id] = [...s[id]]; reg[id] = !s.play; apply(id); }
+  if (s.play) document.querySelectorAll('#plates button').forEach(b => b.disabled = false);
+  $('#ghost').setAttribute('opacity', s.ghost ? .5 : 0);
+  art.classList.toggle('play', !!s.play);
+  setBeat(!!s.beat);
+  [...bar.children].forEach((b, k) => b.classList.toggle('on', k <= cur));
+  $('#ark').textContent = `Ark ${cur + 1}/${scenes.length}`;
+  $('#back').disabled = cur === 0;
+  const next = $('#next');
+  next.hidden = !!s.play; next.textContent = cur === 0 ? 'Börja' : cur === LAST ? 'Läs igen' : 'Nästa';
+  if (!quiet) { copy.classList.remove('in'); void copy.offsetWidth; copy.classList.add('in'); }
+}
+$('#next').addEventListener('click', () => { audio(); go(cur === LAST ? 0 : cur + 1); });
+$('#back').addEventListener('click', () => { audio(); go(cur - 1); });
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input, button, a')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); if (!scenes[cur].play && cur < LAST) { audio(); go(cur + 1); } }
+  if (e.key === 'ArrowLeft' && cur > 0) { audio(); go(cur - 1); }
+});
+document.querySelectorAll('#plates button').forEach(b => b.addEventListener('click', () => { audio(); register(b.dataset.p); }));
+$('#snd').addEventListener('click', e => { sound = !sound; e.target.textContent = sound ? 'Ljud på' : 'Ljud av'; e.target.setAttribute('aria-pressed', sound); if (sound) audio(); });
+
+/* Dragging a plate into register */
+let drag = null;
+art.addEventListener('pointerdown', e => {
+  if (cur !== PLAY) return;
+  const hit = e.target.closest('.plate');
+  let id = hit && hit.dataset.plate;
+  if (!id || reg[id]) id = ['K', 'M', 'Y'].find(k => !reg[k]);
+  if (!id) return;
+  audio();
+  drag = { id, sx: e.clientX, sy: e.clientY, ox: pos[id][0], oy: pos[id][1], moved: 0 };
+  plates[id].classList.add('drag');
+  try { art.setPointerCapture(e.pointerId); } catch (err) {}
+  e.preventDefault();
+});
+art.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const k = 400 / art.clientWidth, dx = (e.clientX - drag.sx) * k, dy = (e.clientY - drag.sy) * k;
+  drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+  pos[drag.id][0] = drag.ox + dx; pos[drag.id][1] = drag.oy + dy; apply(drag.id);
+});
+const drop = () => {
+  if (!drag) return;
+  const { id, moved } = drag; drag = null;
+  plates[id].classList.remove('drag');
+  if (moved < 5 || Math.hypot(pos[id][0], pos[id][1]) < 20) register(id);
+};
+art.addEventListener('pointerup', drop); art.addEventListener('pointercancel', drop);
+
+/* Passing it on */
+$('#send').addEventListener('submit', e => {
+  e.preventDefault();
+  const code = encName($('#name').value), msg = $('#msg');
+  if (!code) { msg.textContent = 'Skriv ett namn först.'; return; }
+  try { location.hash = 'till-' + code; } catch (err) {}
+  who = decName('till-' + code);
+  msg.textContent = `Klart. Berättelsen börjar nu med ”Till ${who}”. Dela sidan så följer namnet med.`;
+});
+window.addEventListener('hashchange', () => { readHash(); if (cur === 0 || cur === PLAY) go(cur, true); });
+
+readHash();
+go(0, true);
+})();
+</script>

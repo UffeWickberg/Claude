@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Köket</title>
+<meta name="description" content="Familjens köksskärm: klocka, kalender, meddelanden och väder.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Köket">
+<meta name="theme-color" content="#07080d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-512.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="sky" aria-hidden="true">
+  <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><i class="blob b4"></i>
+  <i class="veil"></i><i class="grain"></i>
+</div>
+
+<main class="stage">
+  <section class="hero">
+    <p class="greeting" id="greeting">God morgon</p>
+    <div class="clock" id="clock" aria-live="off">
+      <span id="hh">00</span><span class="colon">:</span><span id="mm">00</span>
+    </div>
+    <p class="date" id="date"></p>
+    <p class="meta" id="meta"></p>
+    <p class="nightline" id="nightline"></p>
+
+    <div class="weather" id="weather" hidden>
+      <div class="w-now">
+        <span class="w-icon" id="w-icon"></span>
+        <span class="w-temp" id="w-temp"></span>
+        <span class="w-text">
+          <span id="w-desc"></span>
+          <small id="w-feels"></small>
+        </span>
+      </div>
+      <ol class="w-hours" id="w-hours"></ol>
+      <p class="hint" id="hint"></p>
+    </div>
+  </section>
+
+  <aside class="side">
+    <section class="card messages" id="messages" hidden>
+      <h2>Meddelanden</h2>
+      <ol id="msg-list"></ol>
+    </section>
+    <section class="card agenda" id="agenda">
+      <h2 id="agenda-title">Idag</h2>
+      <ol id="agenda-list"></ol>
+      <div id="agenda-tomorrow" hidden>
+        <h3>I morgon</h3>
+        <ol id="tomorrow-list"></ol>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<p class="status" id="status"></p>
+
+<script src="config.js"></script>
+<script src="ical.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

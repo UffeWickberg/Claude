@@ -424,15 +424,15 @@
 
 
   // ——— Vilka är hemma (skiss: demodata tills Genvägarna skickar på riktigt) ———
-  let presence = [];   // { namn, farg, state: 'home'|'away'|'onway', since: Date, eta?: Date }
+  let presence = [];   // { namn, farg, state: 'home'|'away', since: Date }
   function demoPresence() {
     const n = now(), m = (x) => new Date(n.getTime() + x * 6e4);
     const fam = CFG.familj || [];
     const states = [
       { state: 'home', since: m(-4) },
-      { state: 'onway', since: m(-12), eta: m(22) },
+      { state: 'home', since: m(-50) },
       { state: 'home', since: m(-118) },
-      { state: 'away', since: new Date(n.getFullYear(), n.getMonth(), n.getDate(), 7, 55) },
+      { state: 'away', since: m(-300) },
     ];
     return fam.map((p, i) => ({ ...p, ...(states[i] || states[3]) }));
   }
@@ -445,12 +445,11 @@
     $('presence-sum').textContent = home === presence.length ? 'Alla hemma' : home === 0 ? 'Tomt hus' : `${home} av ${presence.length}`;
     $('people').innerHTML = presence.map((p) => {
       const fresh = p.state === 'home' && t - p.since < 10 * 6e4;
-      const label = p.state === 'home' ? (fresh ? 'Kom nyss' : 'Hemma') : p.state === 'onway' ? 'På väg' : 'Borta';
-      const detail = p.state === 'onway' && p.eta ? `ca ${hm(p.eta)}` : startOfDay(p.since).getTime() === startOfDay(t).getTime() ? `sedan ${hm(p.since)}` : 'sedan igår';
+      const label = p.state === 'home' ? 'Hemma' : 'Borta';
       return `<li class="person ${p.state}${fresh ? ' arrived' : ''}" style="--p:${p.farg}">
         <span class="avatar"><span class="ring"></span>${esc(p.namn.charAt(0))}</span>
         <span class="pname">${esc(p.namn)}</span>
-        <span class="pstate"><b>${label}</b> ${detail.replace('sedan ', '')}</span></li>`;
+        <span class="pstate"><b>${label}</b></span></li>`;
     }).join('');
     $('presence').hidden = false;
   }
@@ -473,7 +472,7 @@
       idag: events.filter((e) => e.start < d1 && e.end > d0 && (e.allDay || e.end > t)).sort((a, b) => a.start - b.start).map(fmtEv),
       imorgon: t.getHours() >= 15 ? events.filter((e) => e.start < d2 && e.end > d1).sort((a, b) => a.start - b.start).slice(0, 5).map(fmtEv) : undefined,
       meddelanden: messages.filter((m) => m.rawStart <= t && m.end > t).map((m) => ({ fran: m.from || undefined, text: m.text, minuterSedan: Math.round((t - m.start) / 6e4) })),
-      hemma: presence.length ? presence.map((p) => ({ namn: p.namn, lage: { home: 'hemma', away: 'borta', onway: 'på väg hem' }[p.state], sedan: hm(p.since), framme: p.eta ? hm(p.eta) : undefined })) : undefined,
+      hemma: presence.length ? presence.map((p) => ({ namn: p.namn, lage: p.state === 'home' ? 'hemma' : 'borta', komNyss: (p.state === 'home' && now() - p.since < 15 * 6e4) || undefined })) : undefined,
       senasteRader: (store.json('ai.history') || []).slice(-4),
     };
     const w = weatherData;

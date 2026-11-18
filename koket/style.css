@@ -249,11 +249,6 @@ body.night .ai { display: none; }
 .person.away { opacity: .5; filter: saturate(.25); }
 .person.away .avatar { background: transparent; color: var(--ink-2); border: 1.5px dashed rgba(255,255,255,.35); }
 .person.away .ring { display: none; }
-/* På väg: en båge som sakta snurrar runt */
-.person.onway .avatar { background: rgba(255,255,255,.06); color: var(--p); }
-.person.onway .ring { border: 2px solid transparent; border-top-color: var(--p); border-right-color: var(--p); opacity: 1; animation: orbspin 4s linear infinite; }
-.person.onway .pstate b { color: var(--p); }
-
 /* Meddelanden */
 .messages { flex: 0 0 auto; }
 .agenda { display: flex; flex-direction: column; }

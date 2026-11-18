@@ -59,6 +59,42 @@ ol { list-style: none; }
 @keyframes drift2 { to { transform: translate(-30vw, -18vh) scale(0.86); } }
 @keyframes drift3 { to { transform: translate(-38vw, 26vh) scale(1.25); } }
 @keyframes drift4 { to { transform: translate(34vw, -24vh) scale(1.1); } }
+/* ——— Vädret som levande lager ——— */
+#fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; transition: opacity 6s ease; }
+.wx { position: absolute; pointer-events: none; opacity: 0; transition: opacity 12s ease; }
+.wx-sun {
+  width: 140vmax; height: 140vmax; left: -55vmax; top: -70vmax;
+  background: repeating-conic-gradient(from 0deg, rgba(255,236,190,.0) 0deg 7deg, rgba(255,236,190,.55) 9deg, rgba(255,236,190,0) 12deg 19deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, transparent 70%); mask-image: radial-gradient(closest-side, #000 0%, transparent 70%);
+  mix-blend-mode: soft-light; animation: rays 240s linear infinite;
+}
+@keyframes rays { to { transform: rotate(360deg); } }
+.wx-cloud {
+  width: 90vmax; height: 34vmax; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(225,230,240,.9), rgba(225,230,240,0));
+  filter: blur(8px); mix-blend-mode: soft-light;
+  animation: cloudrift 260s linear infinite;
+}
+.wx-cloud.c1 { top: -8vmax; left: -60vmax; }
+.wx-cloud.c2 { top: 18vmax; left: -90vmax; width: 70vmax; height: 26vmax; animation-duration: 340s; animation-delay: -120s; }
+.wx-cloud.c3 { top: -2vmax; left: -75vmax; width: 110vmax; height: 30vmax; animation-duration: 420s; animation-delay: -300s; }
+@keyframes cloudrift { from { transform: translateX(0); } to { transform: translateX(240vmax); } }
+.wx-fog {
+  left: -50%; width: 200%; height: 60%;
+  background: repeating-linear-gradient(90deg, rgba(220,226,235,0) 0, rgba(220,226,235,.5) 18%, rgba(220,226,235,0) 36%);
+  -webkit-mask-image: linear-gradient(transparent, #000 40%, #000 60%, transparent); mask-image: linear-gradient(transparent, #000 40%, #000 60%, transparent);
+  filter: blur(30px); animation: fogdrift 120s ease-in-out infinite alternate;
+}
+.wx-fog.f1 { top: 10%; }
+.wx-fog.f2 { top: 45%; animation-duration: 170s; animation-direction: alternate-reverse; }
+@keyframes fogdrift { from { transform: translateX(-12%); } to { transform: translateX(12%); } }
+body[data-wx~="sun"] .wx-sun { opacity: .5; }
+body[data-wx~="clouds"] .wx-cloud { opacity: .35; }
+body[data-wx~="overcast"] .wx-cloud { opacity: .6; }
+body[data-wx~="fog"] .wx-fog { opacity: .28; }
+body.night .wx { opacity: 0 !important; }
+body.night #fx { opacity: .35; }
+
 .veil {
   position: absolute; inset: 0;
   background:
@@ -152,6 +188,39 @@ ol { list-style: none; }
 .ai-text .word { display: inline-block; animation: wordin 1.1s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes wordin { from { opacity: 0; transform: translateY(.35em); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
 body.has-ai .hint { display: none; }
+.ai { cursor: pointer; }
+.ai-invite { color: var(--ink-3); font-style: italic; }
+
+/* ——— Samtalsläge ——— */
+.stage { transition: opacity 1.2s ease, filter 1.2s ease; }
+body.talking .stage { opacity: .12; filter: blur(6px); }
+.talk {
+  position: fixed; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.4vh;
+  padding: 6vh 8vw; text-align: center;
+  opacity: 0; transition: opacity 1s ease;
+}
+body.talking .talk { opacity: 1; }
+.talk[hidden] { display: none; }
+body:not(.talking) .talk { pointer-events: none; }
+.talk-orb {
+  --lvl: 0;
+  position: relative; width: min(38vmin, 320px); aspect-ratio: 1;
+  transform: scale(calc(.92 + var(--lvl) * .32));
+  transition: transform .12s linear;
+}
+.talk-orb i {
+  position: absolute; inset: 0; border-radius: 46% 54% 52% 48% / 50% 44% 56% 50%;
+  background: radial-gradient(circle at 38% 32%, #fff 0%, var(--accent) 22%, color-mix(in srgb, var(--c1) 85%, transparent) 50%, color-mix(in srgb, var(--c2) 40%, transparent) 64%, transparent 71%);
+  box-shadow: 0 0 90px -20px var(--accent), inset 0 0 50px rgba(255,255,255,.18);
+  animation: morph 9s ease-in-out infinite alternate, orbspin 18s linear infinite;
+  filter: saturate(1.25) blur(.5px);
+}
+.talk-orb i:nth-child(2) { background: radial-gradient(circle at 60% 65%, var(--c2), transparent 65%); mix-blend-mode: screen; opacity: .8; animation-duration: 6s, 23s; animation-direction: alternate-reverse, reverse; }
+.talk-orb i:nth-child(3) { inset: -18%; background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 45%, transparent), transparent); opacity: calc(.35 + var(--lvl) * .9); animation: none; border-radius: 50%; }
+.talk-state { font-size: clamp(12px, 1.1vw, 15px); letter-spacing: .28em; text-transform: uppercase; color: var(--ink-3); margin-top: 2vh; }
+.talk-caption { font-family: var(--serif); font-size: clamp(22px, 2.8vw, 40px); line-height: 1.3; max-width: 26em; min-height: 2.6em; color: var(--ink); text-wrap: balance; }
+.talk-hint { position: absolute; bottom: 4vh; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); opacity: .6; }
 body.has-ai .weather { margin-top: clamp(16px, 3vh, 34px); }
 body.night .ai { display: none; }
 .night-home { display: none; }
@@ -188,6 +257,7 @@ body.night .ai { display: none; }
 /* ——— Kort ——— */
 .card {
   background: var(--card);
+  --pad: 1;
   border: 1px solid var(--line);
   border-radius: 28px;
   padding: clamp(18px, 2.4vw, 30px) clamp(20px, 2.6vw, 34px);
@@ -202,12 +272,12 @@ body.night .ai { display: none; }
 .agenda { flex: 1 1 auto; }
 
 /* Händelser */
-.ev { display: grid; grid-template-columns: 4.6em 1fr; gap: 0 1em; padding: .5em 0; align-items: baseline; font-size: clamp(16px, 1.6vw, 22px); transition: opacity 3s ease; }
+.ev { display: grid; grid-template-columns: 3.9em 1fr; gap: 0 .8em; padding: .36em 0; align-items: baseline; font-size: clamp(14px, 1.3vw, 18px); transition: opacity 3s ease; }
 .ev + .ev { border-top: 1px solid rgba(255,255,255,.05); }
 .ev .time { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: .9em; }
 .ev .title { line-height: 1.25; overflow: hidden; text-overflow: ellipsis; }
 .ev .title::before { content: ''; display: inline-block; width: .42em; height: .42em; border-radius: 50%; background: var(--dot, var(--accent)); margin-right: .55em; transform: translateY(-.12em); }
-.ev .sub { grid-column: 2; color: var(--ink-3); font-size: .72em; margin-top: .15em; }
+.ev .sub { grid-column: 2; color: var(--ink-3); font-size: .74em; margin-top: .05em; }
 .ev .tag { display: inline-block; margin-left: .5em; font-size: .62em; letter-spacing: .1em; text-transform: uppercase; padding: .25em .7em; border-radius: 99px; vertical-align: .2em; background: rgba(255,255,255,.1); color: var(--ink); }
 .ev.now .tag { background: var(--accent); color: #1a1208; animation: glow 5s ease-in-out infinite; }
 .ev.past { opacity: .38; }
@@ -251,7 +321,10 @@ body.night .ai { display: none; }
 .person.away .ring { display: none; }
 /* Meddelanden */
 .messages { flex: 0 0 auto; }
-.agenda { display: flex; flex-direction: column; }
+.agenda { display: flex; flex-direction: column; padding: clamp(14px, 1.8vw, 24px) clamp(18px, 2.2vw, 28px); }
+.agenda h2, .agenda h3 { margin-bottom: clamp(6px, 1vh, 10px); }
+.agenda h3 { margin-top: clamp(8px, 1.4vh, 14px); padding-top: clamp(8px, 1.4vh, 12px); }
+.agenda .empty { font-size: clamp(15px, 1.35vw, 18px); }
 .agenda > ol, #agenda-tomorrow { min-height: 0; }
 .agenda { -webkit-mask-image: linear-gradient(#000 calc(100% - 36px), transparent calc(100% - 6px)); mask-image: linear-gradient(#000 calc(100% - 36px), transparent calc(100% - 6px)); }
 .msg { position: relative; padding: .55em 0 .65em; animation: settle 1.6s cubic-bezier(.2,.7,.2,1) both; }
@@ -311,7 +384,7 @@ body.night .nightline:empty { display: none; }
   .date { font-size: 26px; }
   .meta { font-size: 12px; letter-spacing: .1em; line-height: 1.6; }
   .w-hours { gap: 18px; }
-  .ev { grid-template-columns: 4em 1fr; font-size: 17px; }
+  .ev { grid-template-columns: 3.6em 1fr; font-size: 15px; }
   .msg .text { font-size: 22px; }
   .msg:not(:first-child) .text { font-size: 18px; }
   .pstate { white-space: normal; }

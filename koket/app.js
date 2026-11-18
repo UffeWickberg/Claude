@@ -215,7 +215,7 @@
 
   async function loadWeather() {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${CFG.lat}&longitude=${CFG.lon}` +
-      '&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m' +
+      '&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,precipitation' +
       '&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,is_day' +
       '&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min' +
       '&timezone=Europe%2FStockholm&wind_speed_unit=ms&forecast_days=2';
@@ -256,6 +256,7 @@
     $('w-hours').innerHTML = items.join('');
     $('hint').textContent = weatherHint(w, t);
     $('weather').hidden = false;
+    applyWeatherScene(w);
   }
 
   // Ett kort, mänskligt tips utifrån prognosen de närmaste timmarna.
@@ -280,6 +281,163 @@
     if (maxT >= 25 && hr < 16) return `Varm dag – upp till ${Math.round(maxT)}°.`;
     if (hr < 15) return 'Uppehåll resten av dagen.';
     return '';
+  }
+
+
+  // ——— Vädret som levande bakgrund (canvas + mjuka CSS-lager) ———
+  const fx = (() => {
+    const cv = $('fx'), ctx = cv.getContext('2d');
+    let W = 0, H = 0, mode = '', inten = 0, wind = 0, parts = [], drops = [], stars = [];
+    let last = 0, flash = 0, nextBolt = 0, shooting = null, nextShoot = 0, running = false;
+    const rand = (a, b) => a + Math.random() * (b - a);
+
+    // En mjuk prick som ritas om och om igen – billigare än skuggor och filter.
+    const dot = document.createElement('canvas'); dot.width = dot.height = 64;
+    { const g = dot.getContext('2d'), r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.35, 'rgba(255,255,255,.55)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = r; g.fillRect(0, 0, 64, 64); }
+    // En vattendroppe på glaset: ljus kant nedtill, högdager upptill.
+    const drop = document.createElement('canvas'); drop.width = drop.height = 48;
+    { const g = drop.getContext('2d');
+      const body = g.createRadialGradient(24, 28, 4, 24, 24, 22);
+      body.addColorStop(0, 'rgba(255,255,255,.02)'); body.addColorStop(.75, 'rgba(255,255,255,.10)'); body.addColorStop(1, 'rgba(255,255,255,.45)');
+      g.fillStyle = body; g.beginPath(); g.arc(24, 24, 22, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.ellipse(17, 15, 4.5, 3, -.6, 0, Math.PI * 2); g.fill(); }
+
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      W = innerWidth; H = innerHeight;
+      cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      seed();
+    }
+    function seed() {
+      const area = (W * H) / (1180 * 820);
+      parts = []; drops = []; stars = [];
+      const rainy = mode === 'rain' || mode === 'thunder';
+      if (rainy) {
+        const n = Math.round((50 + inten * 230) * area);
+        for (let i = 0; i < n; i++) { const z = rand(.35, 1); parts.push({ x: rand(-W * .2, W * 1.2), y: rand(-H, H), z, len: rand(10, 26) * z, v: rand(700, 1150) * z }); }
+        const d = Math.round((10 + inten * 28) * area);
+        for (let i = 0; i < d; i++) drops.push({ x: rand(0, W), y: rand(0, H), r: rand(2, 6.5), v: 0, life: rand(0, 40) });
+      }
+      if (mode === 'snow') {
+        const n = Math.round((40 + inten * 170) * area);
+        for (let i = 0; i < n; i++) { const z = rand(.3, 1); parts.push({ x: rand(0, W), y: rand(-H, H), z, r: rand(1.2, 4.2) * z + .6, v: rand(18, 55) * z, ph: rand(0, 6.28), sw: rand(.4, 1.4) }); }
+      }
+      if (mode === 'stars') {
+        const n = Math.round(150 * area);
+        for (let i = 0; i < n; i++) stars.push({ x: rand(0, W), y: rand(0, H * .7), r: rand(.4, 1.5), ph: rand(0, 6.28), sp: rand(.3, 1.2) });
+      }
+    }
+    function set(m, i = .5, w = 0) {
+      const changed = m !== mode || Math.abs(i - inten) > .15;
+      mode = m; inten = Math.max(.1, Math.min(1, i)); wind = w;
+      if (changed) seed();
+      if (mode && !running) { running = true; requestAnimationFrame(frame); }
+    }
+
+    function frame(t) {
+      if (!mode) { running = false; ctx.clearRect(0, 0, W, H); return; }
+      requestAnimationFrame(frame);
+      if (document.hidden || t - last < 33) return;            // ~30 bilder/s räcker och sparar batteri
+      const dt = Math.min(.1, (t - last) / 1000 || .033); last = t;
+      ctx.clearRect(0, 0, W, H);
+      const slant = Math.max(-.5, Math.min(.5, wind * .035));
+
+      if (mode === 'rain' || mode === 'thunder') {
+        ctx.lineCap = 'round';
+        for (const p of parts) {
+          p.y += p.v * dt; p.x += p.v * slant * dt;
+          if (p.y > H + 30) { p.y = rand(-80, -10); p.x = rand(-W * .2, W * 1.2); }
+          ctx.strokeStyle = `rgba(205,222,255,${.10 + .28 * p.z})`;
+          ctx.lineWidth = .6 + p.z * .9;
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.len * slant, p.y - p.len); ctx.stroke();
+        }
+        // Droppar på glaset som ibland släpper och rinner ner.
+        for (const d of drops) {
+          d.life += dt;
+          if (!d.v && Math.random() < .0025 * inten) d.v = rand(40, 140);
+          if (d.v) { d.y += d.v * dt; d.x += Math.sin(d.y * .05) * .3; d.v *= .995; if (d.v < 8) d.v = 0; }
+          if (d.y > H + 20) { d.y = rand(-20, H * .6); d.x = rand(0, W); d.v = 0; d.life = 0; }
+          const a = Math.min(1, d.life / 3);
+          ctx.globalAlpha = .55 * a;
+          ctx.drawImage(drop, d.x - d.r, d.y - d.r, d.r * 2, d.r * 2.15);
+        }
+        ctx.globalAlpha = 1;
+        if (mode === 'thunder') {
+          if (t > nextBolt) { flash = 1; nextBolt = t + rand(7000, 22000); }
+          if (flash > .01) { ctx.fillStyle = `rgba(225,232,255,${flash * .22})`; ctx.fillRect(0, 0, W, H); flash *= Math.random() < .15 ? 1.6 : .82; flash = Math.min(flash, 1); }
+        }
+      }
+
+      if (mode === 'snow') {
+        for (const p of parts) {
+          p.ph += dt * p.sw; p.y += p.v * dt; p.x += (Math.sin(p.ph) * 14 + wind * 6 * p.z) * dt;
+          if (p.y > H + 10) { p.y = -10; p.x = rand(0, W); }
+          if (p.x > W + 10) p.x = -10; if (p.x < -10) p.x = W + 10;
+          const s = p.r * 4;
+          ctx.globalAlpha = .25 + .6 * p.z;
+          ctx.drawImage(dot, p.x - s / 2, p.y - s / 2, s, s);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      if (mode === 'stars') {
+        const sec = t / 1000;
+        for (const s of stars) {
+          ctx.globalAlpha = .25 + .55 * (.5 + .5 * Math.sin(sec * s.sp + s.ph));
+          const z = s.r * 5; ctx.drawImage(dot, s.x - z / 2, s.y - z / 2, z, z);
+        }
+        ctx.globalAlpha = 1;
+        // Ett stjärnfall då och då.
+        if (!shooting && t > nextShoot) {
+          if (nextShoot) shooting = { x: rand(W * .2, W * .9), y: rand(0, H * .3), vx: -rand(500, 800), vy: rand(150, 260), life: 0 };
+          nextShoot = t + rand(60000, 180000);
+        }
+        if (shooting) {
+          const s = shooting; s.life += dt; s.x += s.vx * dt; s.y += s.vy * dt;
+          const g = ctx.createLinearGradient(s.x, s.y, s.x - s.vx * .18, s.y - s.vy * .18);
+          const a = Math.max(0, 1 - s.life / 1.1);
+          g.addColorStop(0, `rgba(255,255,255,${.9 * a})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.strokeStyle = g; ctx.lineWidth = 1.4;
+          ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x - s.vx * .18, s.y - s.vy * .18); ctx.stroke();
+          if (a <= 0) shooting = null;
+        }
+      }
+    }
+    addEventListener('resize', resize);
+    resize();
+    return { set };
+  })();
+
+  // Översätt vädret till scen: canvas-läge + mjuka lager (sol, moln, dimma).
+  function applyWeatherScene(w) {
+    const forced = params.get('vader');
+    let kind, isDay, mm = 0, windMs = 0;
+    if (forced) {
+      kind = { regn: 'rain', sno: 'snow', 'snö': 'snow', klart: 'clear', sol: 'clear', moln: 'cloud', halvklart: 'partly', dimma: 'fog', aska: 'thunder', 'åska': 'thunder' }[forced] || forced;
+      isDay = !(phaseFor(now()) === 'natt' || now().getHours() >= 16 || now().getHours() < 8);
+      mm = { rain: 2.5, snow: 1.5, thunder: 4 }[kind] || 0; windMs = 4;
+    } else {
+      if (!w?.current) return;
+      kind = (WMO[w.current.weather_code] || ['', 'cloud'])[1];
+      isDay = !!w.current.is_day; windMs = w.current.wind_speed_10m || 0;
+      const t = now(), i = w.hourly.time.findIndex((s) => new Date(s) > t) - 1;
+      mm = Math.max(i >= 0 ? (w.hourly.precipitation?.[i] ?? 0) : 0, w.current.precipitation ?? 0);
+    }
+    const layers = [];
+    switch (kind) {
+      case 'clear': if (isDay) layers.push('sun'); fx.set(isDay ? '' : 'stars'); break;
+      case 'partly': layers.push('clouds'); if (isDay) layers.push('sun'); fx.set(isDay ? '' : 'stars'); break;
+      case 'cloud': layers.push('overcast'); fx.set(''); break;
+      case 'fog': layers.push('fog'); fx.set(''); break;
+      case 'rain': case 'sleet': layers.push('overcast'); fx.set('rain', .2 + mm / 4, windMs); break;
+      case 'snow': layers.push('overcast'); fx.set('snow', .25 + mm / 2.5, windMs); break;
+      case 'thunder': layers.push('overcast'); fx.set('thunder', .55 + mm / 6, windMs); break;
+      default: fx.set('');
+    }
+    document.body.dataset.wx = layers.join(' ');
   }
 
   // ——— Kalendrar (ICS via er Cloudflare Worker) ———
@@ -541,14 +699,149 @@
   }
 
   const DEMO_LINES = [
-    { kvall: false, text: 'Ella har tandläkare tolv – och regnet kommer runt tre, så paraplyet kan följa med redan nu.', mood: 'uppmanande' },
-    { kvall: false, text: 'Mamma tänker på gympapåsen. Lägg den vid dörren innan fotbollen, så är morgondagen redan fixad.', mood: 'glad' },
+    { kvall: false, text: 'Milla har tandläkare tolv – och regnet kommer runt tre, så paraplyet kan följa med redan nu.', mood: 'uppmanande' },
+    { kvall: false, text: 'Cilla tänker på gympapåsen. Lägg den vid dörren innan fotbollen, så är morgondagen redan fixad.', mood: 'glad' },
     { kvall: false, text: 'Mormor fyller sjuttio idag. Ett samtal innan middagen hos grannarna hinns precis med.', mood: 'mysig' },
     { kvall: false, text: 'Tacos ikväll och fotboll halv fem – ett bra tillfälle att handla på vägen hem.', mood: 'lugn' },
     { text: 'Föräldramöte redan klockan åtta i morgon – och minusgrader i natt, så kanske värmaren i bilen?', mood: 'uppmanande', kvall: true },
     { text: 'Gympapåsen, ja. Lägg den vid dörren nu, så slipper morgondagen börja med jakt.', mood: 'glad', kvall: true },
     { text: 'Lugn kväll framför oss. Mormor har haft sin sjuttioårsdag – hann någon ringa?', mood: 'mysig', kvall: true },
   ];
+
+
+  // ——— Röstsamtal: tryck på kulan och prata med Köket ———
+  const talk = { on: false, pc: null, mic: null, audio: null, ac: null, timers: [], raf: 0, levels: { in: null, out: null } };
+  const TALK_MAX = 4 * 6e4, TALK_IDLE = 25e3;
+
+  function talkState(text) { $('talk-state').textContent = text; }
+  function talkCaption(text, append) {
+    const el = $('talk-caption');
+    el.textContent = append ? el.textContent + text : text;
+    if (el.textContent.length > 220) el.textContent = '…' + el.textContent.slice(-200);
+  }
+  function talkTimer(fn, ms, key) {
+    if (key) { clearTimeout(talk[key]); talk[key] = setTimeout(fn, ms); return; }
+    talk.timers.push(setTimeout(fn, ms));
+  }
+
+  function meter(stream, which) {
+    try {
+      const src = talk.ac.createMediaStreamSource(stream);
+      const an = talk.ac.createAnalyser(); an.fftSize = 512;
+      src.connect(an);
+      talk.levels[which] = { an, buf: new Uint8Array(an.fftSize) };
+    } catch { /* nivåmätning är bara pynt */ }
+  }
+  function animateOrb() {
+    let lvl = 0;
+    for (const k of ['in', 'out']) {
+      const m = talk.levels[k]; if (!m) continue;
+      m.an.getByteTimeDomainData(m.buf);
+      let sum = 0; for (const v of m.buf) { const x = (v - 128) / 128; sum += x * x; }
+      lvl = Math.max(lvl, Math.min(1, Math.sqrt(sum / m.buf.length) * (k === 'out' ? 4 : 3)));
+    }
+    if (talk.fake) lvl = talk.fake();
+    const orb = $('talk-orb');
+    const prev = parseFloat(orb.style.getPropertyValue('--lvl')) || 0;
+    orb.style.setProperty('--lvl', (prev * .7 + lvl * .3).toFixed(3));
+    talk.raf = requestAnimationFrame(animateOrb);
+  }
+
+  async function startTalk() {
+    if (talk.on) return;
+    talk.on = true;
+    document.body.classList.add('talking');
+    $('talk').hidden = false;
+    talkCaption(''); talkState('Ansluter …');
+    try { talk.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { talk.ac = null; }
+    talk.audio = new Audio(); talk.audio.autoplay = true; talk.audio.playsInline = true;
+    animateOrb();
+    talkTimer(stopTalk, TALK_MAX);
+    if (DEMO) return demoTalk();
+
+    try {
+      const r = await fetch(`${PROXY}/voice/session?key=${encodeURIComponent(KEY)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(aiContext('röstsamtal')),
+      });
+      const sess = await r.json();
+      if (!r.ok || !sess.value) throw new Error(sess.error || 'ingen session');
+      if (!talk.on) return;
+
+      const pc = talk.pc = new RTCPeerConnection();
+      pc.ontrack = (e) => { talk.audio.srcObject = e.streams[0]; talk.audio.play().catch(() => {}); if (talk.ac) meter(e.streams[0], 'out'); };
+      talk.mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      talk.mic.getTracks().forEach((tr) => pc.addTrack(tr, talk.mic));
+      if (talk.ac) meter(talk.mic, 'in');
+
+      const dc = pc.createDataChannel('oai-events');
+      dc.onopen = () => dc.send(JSON.stringify({ type: 'response.create', response: { instructions: 'Hälsa kort och varmt på svenska, högst en mening, och fråga vad du kan hjälpa till med.' } }));
+      dc.onmessage = (m) => { try { onTalkEvent(JSON.parse(m.data)); } catch { /* ignorera */ } };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const ans = await fetch('https://api.openai.com/v1/realtime/calls', {
+        method: 'POST', body: offer.sdp,
+        headers: { 'Authorization': `Bearer ${sess.value}`, 'Content-Type': 'application/sdp' },
+      });
+      if (!ans.ok) throw new Error('samtalet kopplades inte (' + ans.status + ')');
+      await pc.setRemoteDescription({ type: 'answer', sdp: await ans.text() });
+      talkState('Lyssnar');
+    } catch (e) {
+      console.warn(e);
+      talkState('Det gick inte att starta samtalet');
+      talkCaption(String(e.message || e).includes('Permission') || e.name === 'NotAllowedError' ? 'Köket behöver få använda mikrofonen.' : 'Försök igen om en stund.');
+      talkTimer(stopTalk, 3500);
+    }
+  }
+
+  let freshTurn = true;
+  function onTalkEvent(ev) {
+    switch (ev.type) {
+      case 'input_audio_buffer.speech_started':
+        talkState('Lyssnar'); freshTurn = true; talkTimer(stopTalk, TALK_IDLE * 2, 'idle'); break;
+      case 'response.output_audio_transcript.delta':
+      case 'response.audio_transcript.delta':
+        if (freshTurn) { talkCaption(''); freshTurn = false; }
+        talkState('Köket'); talkCaption(ev.delta || '', true); break;
+      case 'response.done':
+        freshTurn = true; talkState('Lyssnar'); talkTimer(stopTalk, TALK_IDLE, 'idle'); break;
+      case 'error':
+        console.warn('realtime', ev.error); break;
+    }
+  }
+
+  function stopTalk() {
+    if (!talk.on) return;
+    talk.on = false;
+    talk.timers.forEach(clearTimeout); talk.timers = []; clearTimeout(talk.idle);
+    cancelAnimationFrame(talk.raf); talk.fake = null;
+    try { talk.pc?.close(); } catch { /* */ }
+    talk.mic?.getTracks().forEach((tr) => tr.stop());
+    if (talk.audio) { talk.audio.srcObject = null; }
+    try { talk.ac?.close(); } catch { /* */ }
+    Object.assign(talk, { pc: null, mic: null, audio: null, ac: null, levels: { in: null, out: null } });
+    document.body.classList.remove('talking');
+    setTimeout(() => { if (!talk.on) $('talk').hidden = true; }, 900);
+  }
+
+  // Demoläge: visar hur det ser ut, utan mikrofon och utan OpenAI.
+  function demoTalk() {
+    const lines = [
+      [900, 'Lyssnar', ''],
+      [2600, 'Köket', 'Hej! Jag är Köket.'],
+      [5200, 'Köket', 'När allt är kopplat kan ni prata med mig här – om veckan, middagen eller vädret.'],
+      [10500, 'Lyssnar', ''],
+    ];
+    let speaking = false;
+    talk.fake = () => speaking ? .35 + .4 * Math.abs(Math.sin(performance.now() / 140)) * Math.random() : .04;
+    for (const [ms, st, cap] of lines) {
+      talkTimer(() => { talkState(st); speaking = st === 'Köket'; if (cap) talkCaption(cap); }, ms);
+    }
+    talkTimer(stopTalk, 14000);
+  }
+
+  $('ai').addEventListener('click', (e) => { e.stopPropagation(); startTalk(); });
+  $('talk').addEventListener('click', stopTalk);
 
   // ——— Demodata så att sidan går att titta på innan allt är kopplat ———
   function demoData() {
@@ -558,14 +851,14 @@
       events: [
         { start: at(0), end: at(0, 0, 1), allDay: true, title: 'Mormor fyller 70', location: '', color: '#e8a0bf' },
         { start: at(7, 30), end: at(8), allDay: false, title: 'Lämning förskolan', location: 'Skogsgläntan', color: '#f6c177' },
-        { start: at(12), end: at(13), allDay: false, title: 'Tandläkare – Ella', location: 'Folktandvården Väster', color: '#9ccfd8' },
-        { start: at(16, 30), end: at(17, 45), allDay: false, title: 'Fotbollsträning', location: 'Behrn Arena', color: '#f6c177' },
+        { start: at(12), end: at(13), allDay: false, title: 'Tandläkare – Milla', location: 'Folktandvården Väster', color: '#9ccfd8' },
+        { start: at(16, 30), end: at(17, 45), allDay: false, title: 'Fotboll – Noelle', location: 'Behrn Arena', color: '#f6c177' },
         { start: at(18, 30), end: at(19, 30), allDay: false, title: 'Middag hos grannarna', location: '', color: '#c4a7e7' },
         { start: at(8, 0, 1), end: at(9, 0, 1), allDay: false, title: 'Föräldramöte', location: 'Skolan', color: '#f6c177' },
         { start: at(17, 0, 1), end: at(18, 0, 1), allDay: false, title: 'Simskola', location: 'Gustavsviks badhus', color: '#9ccfd8' },
       ],
       messages: [
-        { start: new Date(n - 6 * 6e4), rawStart: new Date(n - 6 * 6e4), end: new Date(+n + 864e5), text: 'Glöm inte gympapåsen i morgon! 👟', from: 'Mamma' },
+        { start: new Date(n - 6 * 6e4), rawStart: new Date(n - 6 * 6e4), end: new Date(+n + 864e5), text: 'Glöm inte gympapåsen i morgon! 👟', from: 'Cilla' },
         { start: new Date(n - 95 * 6e4), rawStart: new Date(n - 95 * 6e4), end: new Date(+n + 864e5), text: 'Tacos till middag 🌮', from: 'Uffe' },
       ],
     };
@@ -627,11 +920,13 @@
   }
 
   // ——— Start ———
+  if (!ai) { $('ai').hidden = false; $('ai-text').innerHTML = '<span class="ai-invite">Tryck på kulan och prata med Köket.</span>'; }
   renderMeta();
   tick();
   keepAwake();
   loadWeather();
   setInterval(loadWeather, 15 * 6e4);
   setInterval(loadCalendars, 2 * 6e4);
+  if (params.get('vader')) applyWeatherScene(null);
   if (location.protocol.startsWith('http')) { checkForUpdate(); setInterval(checkForUpdate, 3 * 6e4); }
 })();

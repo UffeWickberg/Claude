@@ -10,6 +10,8 @@
 //   OPENAI_API_KEY   – (valfritt) nyckel från platform.openai.com för "Kökets röst"
 // Vanlig variabel (valfri):
 //   OPENAI_MODEL     – modellnamn, standard "gpt-4o-mini"
+//   OPENAI_REALTIME_MODEL – modell för röstsamtal, standard "gpt-realtime-mini"
+//   OPENAI_VOICE     – röst för samtal, standard "marin"
 // Fler kalendrar: lägg till ICS_<ID> och motsvarande rad i config.js.
 
 export default {
@@ -27,6 +29,7 @@ export default {
     }
 
     if (url.pathname === '/ai' && request.method === 'POST') return voice(request, env, cors);
+    if (url.pathname === '/voice/session' && request.method === 'POST') return voiceSession(request, env, cors);
 
     const match = url.pathname.match(/^\/ics\/([a-z0-9_-]+)$/i);
     const source = match && env['ICS_' + match[1].toUpperCase()];
@@ -96,4 +99,43 @@ async function voice(request, env, cors) {
   } catch {
     return json({ error: 'kunde inte tolka svaret' }, 502);
   }
+}
+
+// ——— Röstsamtal via kulan ———
+// iPaden får en kortlivad nyckel (gäller bara för ett samtal) och pratar sedan direkt
+// med OpenAI via WebRTC. Den riktiga API-nyckeln lämnar aldrig Workern.
+const VOICE_PERSONA = `Du är "Köket" – familjen Wickbergs röst i köket i Örebro. Familjen är Uffe, Cilla
+och döttrarna Milla och Noelle. Du pratar svenska, varmt, lugnt och lite kvickt.
+
+Svara kort: oftast en eller två meningar, som i ett vardagligt samtal i ett kök. Ingen uppräkning
+av listor om ingen ber om det. Använd läget nedan (kalender, väder, meddelanden, vem som är hemma)
+när det passar. Hitta aldrig på händelser eller fakta som inte finns i underlaget – säg hellre att
+du inte vet. Du kan inte ändra kalendern själv; föreslå i så fall att någon lägger in det i
+familjekalendern eller skickar det med genvägen "Skicka till köket".`;
+
+async function voiceSession(request, env, cors) {
+  const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
+    status, headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8' },
+  });
+  if (!env.OPENAI_API_KEY) return json({ error: 'OPENAI_API_KEY saknas' }, 501);
+  const context = await request.text();
+  if (context.length > 12000) return json({ error: 'för stort underlag' }, 413);
+
+  const model = env.OPENAI_REALTIME_MODEL || 'gpt-realtime-mini';
+  const r = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session: {
+        type: 'realtime',
+        model,
+        instructions: `${VOICE_PERSONA}\n\nLäget just nu (JSON):\n${context}`,
+        audio: { output: { voice: env.OPENAI_VOICE || 'marin' } },
+      },
+    }),
+  });
+  if (!r.ok) return json({ error: `OpenAI svarade ${r.status}`, detail: (await r.text()).slice(0, 400) }, 502);
+  const data = await r.json();
+  const value = data.value || data.client_secret?.value;
+  return value ? json({ value, model }) : json({ error: 'ingen nyckel i svaret' }, 502);
 }

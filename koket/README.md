@@ -12,6 +12,7 @@ En helskärmssida för iPaden i köket. Den visar:
 - nattläge 22–06 med bara en dämpad klocka och morgondagens första tid. Tryck på skärmen för att se allt i 90 sekunder.
 
 Förhandsvisa en annan tid på dygnet: `?demo&t=2026-11-18T07:15`
+Förhandsvisa vädret: `?demo&vader=regn` (även `sno`, `klart`, `halvklart`, `moln`, `dimma`, `aska`)
 
 ---
 
@@ -52,6 +53,8 @@ Fler kalendrar, till exempel skolans schema: lägg till `ICS_SKOLA` i Workern oc
 
 **Kostnad:** ungefär 35 anrop per dag på cirka 1 500 tokens vardera, vilket blir några kronor i månaden med en mini-modell. Inga anrop görs på natten.
 **Integritet:** dagens kalenderrubriker, meddelandena och vädret skickas till OpenAI när en mening ska skrivas. OpenAI tränar inte på data som skickas via API:et (standardinställning).
+**Röstsamtal:** tryck på kulan så öppnas ett samtal med Köket (OpenAIs realtids-API via WebRTC). Workern lämnar bara ut en kortlivad nyckel per samtal. Samtalet avslutas när man trycker på skärmen, efter 25 sekunders tystnad eller senast efter 4 minuter. Modell och röst ställs in med `OPENAI_REALTIME_MODEL` (standard `gpt-realtime-mini`) och `OPENAI_VOICE` (standard `marin`). Kostnaden är grovt räknat någon krona per samtal. Första gången frågar iPaden om lov att använda mikrofonen.
+
 **Utan nyckel** fungerar allt som vanligt, och väderraden visas i stället för rösten.
 
 Personligheten och reglerna för vad rösten säger finns i `worker/worker.js` (`PERSONA`) och kan ändras fritt.

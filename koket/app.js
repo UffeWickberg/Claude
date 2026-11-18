@@ -608,6 +608,24 @@
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
+  // ——— Ladda om av sig själv när en ny version har publicerats ———
+  const WATCH = ['index.html', 'app.js', 'style.css', 'config.js'];
+  let versionStamp = null;
+  async function currentStamp() {
+    const parts = await Promise.all(WATCH.map(async (f) => {
+      const r = await fetch(f, { method: 'HEAD', cache: 'no-store' });
+      return r.headers.get('etag') || r.headers.get('last-modified') || r.headers.get('content-length') || '';
+    }));
+    return parts.join('|');
+  }
+  async function checkForUpdate() {
+    try {
+      const s = await currentStamp();
+      if (versionStamp === null) versionStamp = s;
+      else if (s && s !== versionStamp) location.reload();
+    } catch { /* offline – försök igen senare */ }
+  }
+
   // ——— Start ———
   renderMeta();
   tick();
@@ -615,4 +633,5 @@
   loadWeather();
   setInterval(loadWeather, 15 * 6e4);
   setInterval(loadCalendars, 2 * 6e4);
+  if (location.protocol.startsWith('http')) { checkForUpdate(); setInterval(checkForUpdate, 3 * 6e4); }
 })();

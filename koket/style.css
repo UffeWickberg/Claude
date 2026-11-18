@@ -206,6 +206,44 @@ body.night .nightline:empty { display: none; }
   .side { justify-content: flex-start; }
 }
 
+/* ——— Telefon: får scrolla, så inget klipps ———
+   (iPaden får alltid plats på en skärm; det här är för att kunna titta på mobilen.) */
+@media (max-width: 700px), (max-height: 520px) {
+  html, body { height: auto; min-height: 100%; }
+  body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .stage { height: auto; min-height: 100vh; min-height: 100dvh; }
+  .hero, .side { justify-content: flex-start; }
+  .card { overflow: visible; border-radius: 22px; }
+  .status { position: absolute; }
+  body.night .stage { height: 100dvh; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+  .stage { --gutter: 20px; gap: 28px; }
+  .hero { padding-top: 2vh; }
+  .clock { font-size: 27vw; }
+  .greeting { font-size: 24px; }
+  .date { font-size: 26px; }
+  .meta { font-size: 12px; letter-spacing: .1em; line-height: 1.6; }
+  .w-hours { gap: 18px; }
+  .ev { grid-template-columns: 4em 1fr; font-size: 17px; }
+  .msg .text { font-size: 22px; }
+  .msg:not(:first-child) .text { font-size: 18px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .stage { --gutter: 24px; grid-template-columns: 1.2fr 1fr; }
+  .clock { font-size: 15vw; }
+  .greeting { font-size: 20px; }
+  .date { font-size: 22px; }
+  .meta { font-size: 11px; letter-spacing: .1em; }
+  .weather { margin-top: 18px; }
+  .w-hours { gap: 16px; }
+  .card { padding: 16px 18px; }
+  .ev { font-size: 15px; }
+  .msg .text { font-size: 19px; }
+  .msg:not(:first-child) .text { font-size: 16px; }
+  body.night .clock { font-size: 22vw; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .blob, .colon, .spin, .float, .fall, .msg, .msg:first-child, .ev.now .tag { animation: none !important; }
 }

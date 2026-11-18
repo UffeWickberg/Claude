@@ -120,6 +120,7 @@
     }
     renderAgenda();
     renderMessages();
+    renderPresence();
     if (weatherData) renderWeather();
     maybeAskAi();
     // Ladda om sidan en gång per natt för att få uppdateringar och hålla den pigg.
@@ -421,6 +422,39 @@
   }
 
 
+
+  // ——— Vilka är hemma (skiss: demodata tills Genvägarna skickar på riktigt) ———
+  let presence = [];   // { namn, farg, state: 'home'|'away'|'onway', since: Date, eta?: Date }
+  function demoPresence() {
+    const n = now(), m = (x) => new Date(n.getTime() + x * 6e4);
+    const fam = CFG.familj || [];
+    const states = [
+      { state: 'home', since: m(-4) },
+      { state: 'onway', since: m(-12), eta: m(22) },
+      { state: 'home', since: m(-118) },
+      { state: 'away', since: new Date(n.getFullYear(), n.getMonth(), n.getDate(), 7, 55) },
+    ];
+    return fam.map((p, i) => ({ ...p, ...(states[i] || states[3]) }));
+  }
+  function renderPresence() {
+    if (!(CFG.familj || []).length) return;
+    if (DEMO) presence = demoPresence();
+    if (!presence.length) { $('presence').hidden = true; return; }
+    const t = now();
+    const home = presence.filter((p) => p.state === 'home').length;
+    $('presence-sum').textContent = home === presence.length ? 'Alla hemma' : home === 0 ? 'Tomt hus' : `${home} av ${presence.length}`;
+    $('people').innerHTML = presence.map((p) => {
+      const fresh = p.state === 'home' && t - p.since < 10 * 6e4;
+      const label = p.state === 'home' ? (fresh ? 'Kom nyss' : 'Hemma') : p.state === 'onway' ? 'På väg' : 'Borta';
+      const detail = p.state === 'onway' && p.eta ? `ca ${hm(p.eta)}` : startOfDay(p.since).getTime() === startOfDay(t).getTime() ? `sedan ${hm(p.since)}` : 'sedan igår';
+      return `<li class="person ${p.state}${fresh ? ' arrived' : ''}" style="--p:${p.farg}">
+        <span class="avatar"><span class="ring"></span>${esc(p.namn.charAt(0))}</span>
+        <span class="pname">${esc(p.namn)}</span>
+        <span class="pstate"><b>${label}</b> ${detail.replace('sedan ', '')}</span></li>`;
+    }).join('');
+    $('presence').hidden = false;
+  }
+
   // ——— Kökets röst: en AI-skriven rad som knyter ihop dagen ———
   // Sidan skickar en sammanfattning till Workern, som frågar OpenAI. API-nyckeln finns bara i Workern.
   let ai = store.json('ai') || null;            // { text, mood, at }
@@ -439,6 +473,7 @@
       idag: events.filter((e) => e.start < d1 && e.end > d0 && (e.allDay || e.end > t)).sort((a, b) => a.start - b.start).map(fmtEv),
       imorgon: t.getHours() >= 15 ? events.filter((e) => e.start < d2 && e.end > d1).sort((a, b) => a.start - b.start).slice(0, 5).map(fmtEv) : undefined,
       meddelanden: messages.filter((m) => m.rawStart <= t && m.end > t).map((m) => ({ fran: m.from || undefined, text: m.text, minuterSedan: Math.round((t - m.start) / 6e4) })),
+      hemma: presence.length ? presence.map((p) => ({ namn: p.namn, lage: { home: 'hemma', away: 'borta', onway: 'på väg hem' }[p.state], sedan: hm(p.since), framme: p.eta ? hm(p.eta) : undefined })) : undefined,
       senasteRader: (store.json('ai.history') || []).slice(-4),
     };
     const w = weatherData;

@@ -18,6 +18,14 @@ window.KOKET_CONFIG = {
   // Kalendern som används för meddelanden till skärmen.
   meddelanden: 'meddelanden',
 
+  // Familjen – för "Vilka är hemma". Färgen används för personens markering.
+  familj: [
+    { namn: 'Uffe',   farg: '#f6c177' },
+    { namn: 'Cilla',  farg: '#eba0bf' },
+    { namn: 'Milla',  farg: '#8fd3d8' },
+    { namn: 'Noelle', farg: '#c4a7e7' },
+  ],
+
   // Nattläge (endast klockan, dämpat). Tryck på skärmen för att väcka den en stund.
   nattStart: 22,
   nattSlut: 6,

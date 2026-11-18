@@ -7,13 +7,17 @@
 //   KEY              – ett långt slumpat lösenord, samma som ?key= på iPaden
 //   ICS_FAMILJ       – webcal://…-länken till familjekalendern
 //   ICS_MEDDELANDEN  – webcal://…-länken till kalendern "Meddelanden"
+//   OPENAI_API_KEY   – (valfritt) nyckel från platform.openai.com för "Kökets röst"
+// Vanlig variabel (valfri):
+//   OPENAI_MODEL     – modellnamn, standard "gpt-4o-mini"
 // Fler kalendrar: lägg till ICS_<ID> och motsvarande rad i config.js.
 
 export default {
   async fetch(request, env) {
     const cors = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
     };
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
 
@@ -21,6 +25,8 @@ export default {
     if (!env.KEY || url.searchParams.get('key') !== env.KEY) {
       return new Response('Fel nyckel', { status: 403, headers: cors });
     }
+
+    if (url.pathname === '/ai' && request.method === 'POST') return voice(request, env, cors);
 
     const match = url.pathname.match(/^\/ics\/([a-z0-9_-]+)$/i);
     const source = match && env['ICS_' + match[1].toUpperCase()];
@@ -38,3 +44,56 @@ export default {
     });
   },
 };
+
+// ——— Kökets röst ———
+const PERSONA = `Du är "Köket" – familjens skärm i köket i en villa i Örebro. Du är varm, lugn,
+lite kvick och aldrig tjatig, som en klok familjemedlem som har koll.
+
+Du får en JSON-sammanfattning av läget just nu: tid, väder, dagens och ibland morgondagens
+kalender, meddelanden från familjen, namnsdag och dina senaste rader.
+
+Skriv EN mening (högst 130 tecken) på naturlig svenska som är användbar just nu:
+- Knyt gärna ihop två saker (t.ex. väder + en tid, eller ett meddelande + en händelse).
+- Prioritera: något som börjar snart > nya meddelanden > vädret > något roligt (namnsdag, helg, årstid).
+- Skriv tider som människor säger dem ("halv fem", "tolv").
+- Hitta aldrig på händelser, personer eller fakta som inte finns i underlaget.
+- Upprepa inte klockslaget eller datumet i sig, och upprepa inte dina senaste rader.
+- Inga hashtags, högst en emoji, och bara om den verkligen passar.
+- Är inget särskilt på gång: säg något stämningsfullt och kort om dagen eller vädret.
+
+Svara som JSON: {"text": "...", "mood": "lugn" | "glad" | "uppmanande" | "mysig"}`;
+
+async function voice(request, env, cors) {
+  const json = (obj, status = 200) => new Response(JSON.stringify(obj), {
+    status, headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8' },
+  });
+  if (!env.OPENAI_API_KEY) return json({ error: 'OPENAI_API_KEY saknas' }, 501);
+
+  const context = await request.text();
+  if (context.length > 12000) return json({ error: 'för stort underlag' }, 413);
+
+  const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: env.OPENAI_MODEL || 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      max_completion_tokens: 300,
+      messages: [
+        { role: 'system', content: PERSONA },
+        { role: 'user', content: context },
+      ],
+    }),
+  });
+  if (!r.ok) return json({ error: `OpenAI svarade ${r.status}`, detail: (await r.text()).slice(0, 300) }, 502);
+
+  try {
+    const data = await r.json();
+    const out = JSON.parse(data.choices[0].message.content);
+    const text = String(out.text || '').trim().slice(0, 200);
+    const mood = ['lugn', 'glad', 'uppmanande', 'mysig'].includes(out.mood) ? out.mood : 'lugn';
+    return text ? json({ text, mood }) : json({ error: 'tomt svar' }, 502);
+  } catch {
+    return json({ error: 'kunde inte tolka svaret' }, 502);
+  }
+}

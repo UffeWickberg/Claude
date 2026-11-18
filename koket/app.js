@@ -121,6 +121,7 @@
     renderAgenda();
     renderMessages();
     if (weatherData) renderWeather();
+    maybeAskAi();
     // Ladda om sidan en gång per natt för att få uppdateringar och hålla den pigg.
     if (d.getHours() === 3 && d.getMinutes() === 33 && !timeOffset) location.reload();
   }
@@ -331,6 +332,7 @@
       ({ events, messages } = demoData());
       $('status').textContent = 'Demoläge';
       renderAgenda(); renderMessages();
+      calLoadedOnce = true;
       return;
     }
     const errors = [];
@@ -358,6 +360,7 @@
     }
     $('status').textContent = errors.length ? `Kunde inte hämta: ${errors.join(', ')}` : '';
     renderAgenda(); renderMessages();
+    if (!calLoadedOnce) { calLoadedOnce = true; setTimeout(() => maybeAskAi(), 4000); }
   }
 
   function eventRow(e, t, isToday) {
@@ -393,7 +396,7 @@
     $('nightline').textContent = nextDay ? `${t.getHours() < 12 ? 'I dag' : 'I morgon'} ${hm(nextDay.start)} · ${nextDay.title}` : '';
   }
 
-  let shownMsgKey = '';
+  let shownMsgKey = null, calLoadedOnce = false;
   function renderMessages() {
     const t = now();
     const active = messages.filter((m) => m.rawStart <= t && m.end > t && m.text)
@@ -403,7 +406,12 @@
     const html = active.map((m) => `<li class="msg${t - m.start < 30 * 6e4 ? ' fresh' : ''}">
       <p class="text">${esc(m.text)}</p>
       <p class="from">${m.from ? `<b>${esc(m.from)}</b> · ` : ''}${ago(m.start)}</p></li>`).join('');
-    if (key !== shownMsgKey) { $('msg-list').innerHTML = html; shownMsgKey = key; return; }
+    if (key !== shownMsgKey) {
+      const hadBefore = calLoadedOnce;
+      $('msg-list').innerHTML = html; shownMsgKey = key;
+      if (hadBefore && active.length) setTimeout(() => maybeAskAi('nytt meddelande'), 1500);
+      return;
+    }
     // Samma meddelanden: uppdatera bara tidstexterna, så animationerna inte startar om.
     $('msg-list').querySelectorAll('.msg').forEach((li, i) => {
       const m = active[i];
@@ -411,6 +419,102 @@
       li.querySelector('.from').innerHTML = `${m.from ? `<b>${esc(m.from)}</b> · ` : ''}${ago(m.start)}`;
     });
   }
+
+
+  // ——— Kökets röst: en AI-skriven rad som knyter ihop dagen ———
+  // Sidan skickar en sammanfattning till Workern, som frågar OpenAI. API-nyckeln finns bara i Workern.
+  let ai = store.json('ai') || null;            // { text, mood, at }
+  let aiBusy = false, aiDemoIdx = 0;
+  const AI_EVERY = (params.has('demo') || !PROXY ? 1.5 : 30) * 6e4, AI_MIN_GAP = 2 * 6e4;
+
+  function aiContext(reason) {
+    const t = now(), d0 = startOfDay(t), d1 = startOfDay(t, 1), d2 = startOfDay(t, 2);
+    const fmtEv = (e) => ({ tid: e.allDay ? 'heldag' : `${hm(e.start)}–${hm(e.end)}`, vad: e.title, var: e.location.split('\n')[0] || undefined, pagar: !e.allDay && e.start <= t && e.end > t || undefined });
+    const ctx = {
+      anledning: reason,
+      nu: `${cap(fmtDate.format(t))} kl. ${hm(t)}`,
+      plats: CFG.plats,
+      namnsdag: dayInfo?.namnsdag?.join(', ') || undefined,
+      helgdag: dayInfo?.helgdag || dayInfo?.flaggdag || undefined,
+      idag: events.filter((e) => e.start < d1 && e.end > d0 && (e.allDay || e.end > t)).sort((a, b) => a.start - b.start).map(fmtEv),
+      imorgon: t.getHours() >= 15 ? events.filter((e) => e.start < d2 && e.end > d1).sort((a, b) => a.start - b.start).slice(0, 5).map(fmtEv) : undefined,
+      meddelanden: messages.filter((m) => m.rawStart <= t && m.end > t).map((m) => ({ fran: m.from || undefined, text: m.text, minuterSedan: Math.round((t - m.start) / 6e4) })),
+      senasteRader: (store.json('ai.history') || []).slice(-4),
+    };
+    const w = weatherData;
+    if (w?.current && w.hourly) {
+      const next = w.hourly.time.map((s, i) => [new Date(s), i]).filter(([d]) => d > t).slice(0, 12).filter((_, k) => k % 2 === 0);
+      ctx.vader = {
+        nu: `${Math.round(w.current.temperature_2m)}°, ${(WMO[w.current.weather_code] || [''])[0]}, känns som ${Math.round(w.current.apparent_temperature)}°`,
+        kommande: next.map(([d, i]) => `${pad(d.getHours())}: ${Math.round(w.hourly.temperature_2m[i])}° ${(WMO[w.hourly.weather_code[i]] || [''])[0]}, nederbörd ${w.hourly.precipitation_probability?.[i] ?? 0}%`),
+        sol: w.daily ? `upp ${hm(new Date(w.daily.sunrise[0]))}, ner ${hm(new Date(w.daily.sunset[0]))}` : undefined,
+      };
+    }
+    return ctx;
+  }
+
+  function maybeAskAi(reason) {
+    const t = now(), h = t.getHours();
+    if (aiBusy || !calLoadedOnce) return;
+    if (phaseFor(t) === 'natt') { $('ai').hidden = true; return; }
+    const age = ai ? Date.now() - ai.at : Infinity;
+    if (reason ? age < AI_MIN_GAP : age < AI_EVERY) {
+      if (ai && !$('ai').dataset.shown) showAi(ai, false);
+      return;
+    }
+    askAi(reason || (h < 10 ? 'morgon' : h >= 17 ? 'kväll' : 'dag'));
+  }
+
+  async function askAi(reason) {
+    aiBusy = true;
+    try {
+      let res;
+      if (DEMO) {
+        const lines = DEMO_LINES.filter((l) => l.kvall === (now().getHours() >= 17));
+        res = lines[aiDemoIdx++ % lines.length];
+      } else {
+        const r = await fetch(`${PROXY}/ai?key=${encodeURIComponent(KEY)}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(aiContext(reason)),
+        });
+        if (!r.ok) throw new Error('ai ' + r.status);
+        res = await r.json();
+      }
+      if (res?.text) {
+        ai = { text: res.text, mood: res.mood || 'lugn', at: Date.now() };
+        store.set('ai', JSON.stringify(ai));
+        const hist = (store.json('ai.history') || []).concat(res.text).slice(-6);
+        store.set('ai.history', JSON.stringify(hist));
+        showAi(ai, true);
+      }
+    } catch (e) {
+      console.warn(e);
+      if (ai) showAi(ai, false);
+    } finally {
+      aiBusy = false;
+    }
+  }
+
+  function showAi(state, animate) {
+    const box = $('ai'), el = $('ai-text');
+    box.hidden = false; box.dataset.shown = '1';
+    box.dataset.mood = state.mood;
+    document.body.classList.add('has-ai');
+    if (!animate) { el.textContent = state.text; return; }
+    box.classList.remove('speaking'); void box.offsetWidth; box.classList.add('speaking');
+    el.innerHTML = state.text.split(/(\s+)/).map((w, i) =>
+      /\s/.test(w) ? w : `<span class="word" style="animation-delay:${(i / 2) * 90}ms">${esc(w)}</span>`).join('');
+    setTimeout(() => box.classList.remove('speaking'), 6000);
+  }
+
+  const DEMO_LINES = [
+    { kvall: false, text: 'Ella har tandläkare tolv – och regnet kommer runt tre, så paraplyet kan följa med redan nu.', mood: 'uppmanande' },
+    { kvall: false, text: 'Mamma tänker på gympapåsen. Lägg den vid dörren innan fotbollen, så är morgondagen redan fixad.', mood: 'glad' },
+    { kvall: false, text: 'Mormor fyller sjuttio idag. Ett samtal innan middagen hos grannarna hinns precis med.', mood: 'mysig' },
+    { kvall: false, text: 'Tacos ikväll och fotboll halv fem – ett bra tillfälle att handla på vägen hem.', mood: 'lugn' },
+    { text: 'Föräldramöte redan klockan åtta i morgon – och minusgrader i natt, så kanske värmaren i bilen?', mood: 'uppmanande', kvall: true },
+    { text: 'Gympapåsen, ja. Lägg den vid dörren nu, så slipper morgondagen börja med jakt.', mood: 'glad', kvall: true },
+    { text: 'Lugn kväll framför oss. Mormor har haft sin sjuttioårsdag – hann någon ringa?', mood: 'mysig', kvall: true },
+  ];
 
   // ——— Demodata så att sidan går att titta på innan allt är kopplat ———
   function demoData() {

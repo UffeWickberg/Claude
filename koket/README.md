@@ -8,6 +8,7 @@ En helskärmssida för iPaden i köket. Den visar:
 - dagens händelser ur familjekalendern, med "Pågår" och "om 20 min" (efter kl. 17 visas även morgondagen)
 - **meddelanden** som familjen skickar via Siri eller Genvägar
 - en bakgrund som rör sig långsamt och byter färg: gryning, dag, kväll och natt
+- **Kökets röst**: en AI (OpenAI) som ungefär var halvtimme skriver en mening som knyter ihop väder, kalender och meddelanden. Den svarar också när ett nytt meddelande kommer in. Meningen visas bredvid en ljuskula som rör sig långsamt och byter färg efter stämning.
 - nattläge 22–06 med bara en dämpad klocka och morgondagens första tid. Tryck på skärmen för att se allt i 90 sekunder.
 
 Förhandsvisa en annan tid på dygnet: `?demo&t=2026-11-18T07:15`
@@ -42,6 +43,18 @@ iCloud tillåter inte att en webbsida läser kalendern direkt. Workern hämtar d
 4. Skriv in Workerns adress, till exempel `https://koket.dittnamn.workers.dev`, i `config.js` under `proxy`.
 
 Fler kalendrar, till exempel skolans schema: lägg till `ICS_SKOLA` i Workern och en rad i `kalendrar` i `config.js`.
+
+## 3b. Kökets röst (OpenAI, valfritt)
+
+1. Skapa en API-nyckel på platform.openai.com → API keys. Sätt gärna en månadsgräns under *Limits*, till exempel 2 $.
+2. Lägg till den i Workern som Secret: `OPENAI_API_KEY`.
+3. Valfritt: lägg till variabeln `OPENAI_MODEL` om du vill byta modell. Standard är `gpt-4o-mini`.
+
+**Kostnad:** ungefär 35 anrop per dag på cirka 1 500 tokens vardera, vilket blir några kronor i månaden med en mini-modell. Inga anrop görs på natten.
+**Integritet:** dagens kalenderrubriker, meddelandena och vädret skickas till OpenAI när en mening ska skrivas. OpenAI tränar inte på data som skickas via API:et (standardinställning).
+**Utan nyckel** fungerar allt som vanligt, och väderraden visas i stället för rösten.
+
+Personligheten och reglerna för vad rösten säger finns i `worker/worker.js` (`PERSONA`) och kan ändras fritt.
 
 ## 4. Genvägen "Skicka till köket" (alla i familjen)
 

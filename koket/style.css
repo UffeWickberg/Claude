@@ -107,6 +107,54 @@ ol { list-style: none; }
 .meta b { color: var(--ink); font-weight: 500; }
 .meta .flag { color: var(--accent); }
 
+/* ——— Kökets röst ——— */
+.ai {
+  display: flex; align-items: flex-start; gap: clamp(12px, 1.3vw, 18px);
+  margin-top: clamp(18px, 3.2vh, 34px); max-width: 32em;
+  --orb-a: var(--accent); --orb-b: var(--c1);
+}
+.ai[data-mood="glad"]       { --orb-a: #ffd27a; --orb-b: #ff9a6b; }
+.ai[data-mood="uppmanande"] { --orb-a: #ff9a7a; --orb-b: #e0507a; }
+.ai[data-mood="mysig"]      { --orb-a: #f6b47c; --orb-b: #c4a7e7; }
+.ai[data-mood="lugn"]       { --orb-a: #9fd6c2; --orb-b: #5b8fd6; }
+.orb {
+  position: relative; flex: none;
+  width: clamp(26px, 2.5vw, 38px); height: clamp(26px, 2.5vw, 38px);
+  margin-top: .15em;
+}
+.orb i {
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 35% 30%, #fff 0%, var(--orb-a) 30%, var(--orb-b) 75%, transparent 100%);
+  border-radius: 46% 54% 52% 48% / 50% 44% 56% 50%;
+  animation: morph 11s ease-in-out infinite alternate, orbspin 23s linear infinite;
+  box-shadow: 0 0 24px -2px var(--orb-a);
+  transition: background 3s ease, box-shadow 3s ease;
+}
+.orb i + i {
+  mix-blend-mode: screen; opacity: .55; transform: scale(.8);
+  animation: morph 7s ease-in-out infinite alternate-reverse, orbspin 31s linear infinite reverse;
+}
+@keyframes morph {
+  0%   { border-radius: 46% 54% 52% 48% / 50% 44% 56% 50%; }
+  50%  { border-radius: 58% 42% 40% 60% / 42% 58% 44% 56%; }
+  100% { border-radius: 40% 60% 56% 44% / 58% 40% 60% 42%; }
+}
+@keyframes orbspin { to { rotate: 360deg; } }
+.ai.speaking .orb::after {
+  content: ''; position: absolute; inset: -6px; border-radius: 50%;
+  border: 1px solid var(--orb-a); animation: ripple 2.2s ease-out 3;
+}
+@keyframes ripple { from { transform: scale(.7); opacity: .9; } to { transform: scale(2.1); opacity: 0; } }
+.ai-text {
+  font-family: var(--serif); font-size: clamp(18px, 1.9vw, 28px); line-height: 1.3;
+  color: var(--ink); letter-spacing: -.003em; text-wrap: pretty;
+}
+.ai-text .word { display: inline-block; animation: wordin 1.1s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes wordin { from { opacity: 0; transform: translateY(.35em); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+body.has-ai .hint { display: none; }
+body.has-ai .weather { margin-top: clamp(16px, 3vh, 34px); }
+body.night .ai { display: none; }
+
 /* ——— Väder ——— */
 .weather { margin-top: clamp(22px, 4.5vh, 48px); }
 .w-now { display: flex; align-items: center; gap: clamp(10px, 1.2vw, 18px); }

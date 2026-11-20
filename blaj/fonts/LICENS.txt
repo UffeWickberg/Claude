@@ -1,0 +1,6 @@
+Typsnitten i den här mappen används under SIL Open Font License 1.1 (OFL):
+- Archivo (Omnibus-Type) – variabel, vikt och bredd
+- Newsreader (Production Type) – variabel, optisk storlek
+- IBM Plex Mono (IBM)
+Filerna kommer från Fontsource-paketen på npm. OFL tillåter fri användning,
+inbäddning och vidaredistribution på webbplatser. https://openfontlicense.org
